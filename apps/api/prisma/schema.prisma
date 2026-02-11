@@ -12,6 +12,13 @@ enum AppRole {
   coach
 }
 
+enum AnalysisJobStatus {
+  queued
+  running
+  completed
+  failed
+}
+
 model User {
   id          String   @id @default(cuid())
   supabaseSub String   @unique @map("supabase_sub")
@@ -20,30 +27,55 @@ model User {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   games       Game[]
+  analysisJobs AnalysisJob[]
 
   @@map("users")
 }
 
 model Game {
-  id               String   @id @default(cuid())
-  userId           String   @map("user_id")
-  provider         String   @default("chess_com")
-  gameUrl          String   @map("game_url")
-  chessComUsername String   @map("chess_com_username")
+  id               String        @id @default(cuid())
+  userId           String        @map("user_id")
+  provider         String        @default("chess_com")
+  gameUrl          String        @map("game_url")
+  chessComUsername String        @map("chess_com_username")
   period           String
   pgn              String?
-  endTime          DateTime? @map("end_time")
-  timeClass        String?   @map("time_class")
-  rated            Boolean   @default(false)
+  endTime          DateTime?     @map("end_time")
+  timeClass        String?       @map("time_class")
+  rated            Boolean       @default(false)
   rules            String?
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  analysisJobs     AnalysisJob[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, gameUrl])
   @@index([userId, createdAt])
   @@map("games")
+}
+
+model AnalysisJob {
+  id              String            @id @default(cuid())
+  userId          String            @map("user_id")
+  gameId          String            @map("game_id")
+  status          AnalysisJobStatus @default(queued)
+  queueJobId      String            @unique @map("queue_job_id")
+  progressPercent Int               @default(0) @map("progress_percent")
+  etaSeconds      Int?              @map("eta_seconds")
+  startedAt       DateTime?         @map("started_at")
+  completedAt     DateTime?         @map("completed_at")
+  errorCode       String?           @map("error_code")
+  errorMessage    String?           @map("error_message")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+  @@index([gameId, createdAt])
+  @@map("analysis_jobs")
 }
 
 model AuditLog {

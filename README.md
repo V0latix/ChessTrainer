@@ -63,6 +63,11 @@ npm run dev
     - `CHESSCOM_RETRY_BASE_DELAY_MS`
     - `CHESSCOM_RETRY_MAX_DELAY_MS`
   - Final failure status is explicit in API responses (archive listing errors include HTTP status and attempts; per-period failures include reason suffix `_after_<n>_attempts`).
+- Analysis job enqueue (Story 3.1):
+  - API endpoint: `POST /analysis/jobs`.
+  - Enqueues asynchronous analysis jobs for imported games of the authenticated user.
+  - Returns `enqueued_count`, `skipped_count`, and per-job tracking metadata (`job_id`, `queue_job_id`, initial `status`).
+  - Jobs with existing active status (`queued`/`running`) are skipped to avoid duplicate active processing.
 
 ## Useful Commands
 

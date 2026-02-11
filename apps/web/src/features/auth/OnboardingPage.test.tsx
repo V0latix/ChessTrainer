@@ -7,6 +7,7 @@ import { OnboardingPage } from './OnboardingPage';
 const {
   signOutMock,
   deleteAccountFromApiMock,
+  enqueueAnalysisJobsMock,
   listChessComCandidateGamesMock,
   importSelectedChessComGamesMock,
   reimportChessComGamesMock,
@@ -14,6 +15,7 @@ const {
   return {
     signOutMock: vi.fn(),
     deleteAccountFromApiMock: vi.fn(),
+    enqueueAnalysisJobsMock: vi.fn(),
     listChessComCandidateGamesMock: vi.fn(),
     importSelectedChessComGamesMock: vi.fn(),
     reimportChessComGamesMock: vi.fn(),
@@ -33,6 +35,12 @@ vi.mock('../../lib/supabase', () => {
 vi.mock('../../lib/account-delete', () => {
   return {
     deleteAccountFromApi: deleteAccountFromApiMock,
+  };
+});
+
+vi.mock('../../lib/analysis-jobs', () => {
+  return {
+    enqueueAnalysisJobs: enqueueAnalysisJobsMock,
   };
 });
 
@@ -63,6 +71,7 @@ describe('OnboardingPage', () => {
   beforeEach(() => {
     signOutMock.mockReset();
     deleteAccountFromApiMock.mockReset();
+    enqueueAnalysisJobsMock.mockReset();
     listChessComCandidateGamesMock.mockReset();
     importSelectedChessComGamesMock.mockReset();
     reimportChessComGamesMock.mockReset();
@@ -240,6 +249,38 @@ describe('OnboardingPage', () => {
     expect(screen.getByText(/Parties scannées: 10/i)).toBeInTheDocument();
     expect(
       screen.getByText(/2026-01 \(archive_unavailable_503\)/i),
+    ).toBeInTheDocument();
+  });
+
+  it('starts async analysis jobs and shows queue summary', async () => {
+    const user = userEvent.setup();
+
+    enqueueAnalysisJobsMock.mockResolvedValue({
+      enqueued_count: 4,
+      skipped_count: 1,
+      jobs: [],
+    });
+
+    render(
+      <MemoryRouter>
+        <OnboardingPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /démarrer l’analyse asynchrone/i }),
+    );
+
+    await waitFor(() => {
+      expect(enqueueAnalysisJobsMock).toHaveBeenCalledWith({
+        accessToken: 'access-token-1',
+      });
+      expect(screen.getByText(/Analyse lancée/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Jobs créés: 4/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Jobs ignorés \(déjà en cours\): 1/i),
     ).toBeInTheDocument();
   });
 

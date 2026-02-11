@@ -6,6 +6,10 @@ import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummar
 import { Puzzle } from '../../components/Puzzle/Puzzle';
 import { deleteAccountFromApi } from '../../lib/account-delete';
 import {
+  enqueueAnalysisJobs,
+  type EnqueueAnalysisJobsResponse,
+} from '../../lib/analysis-jobs';
+import {
   importSelectedChessComGames,
   listChessComCandidateGames,
   type CandidateGame,
@@ -33,6 +37,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
   const [isFetchingGames, setIsFetchingGames] = useState(false);
   const [isImportingGames, setIsImportingGames] = useState(false);
   const [isReimportingGames, setIsReimportingGames] = useState(false);
+  const [isEnqueuingAnalysis, setIsEnqueuingAnalysis] = useState(false);
   const [candidateGames, setCandidateGames] = useState<CandidateGame[]>([]);
   const [unavailablePeriods, setUnavailablePeriods] = useState<string[]>([]);
   const [selectedGames, setSelectedGames] = useState<Record<string, boolean>>({});
@@ -41,6 +46,8 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
   const [reimportSummary, setReimportSummary] = useState<ReimportGamesResponse | null>(
     null,
   );
+  const [analysisSummary, setAnalysisSummary] =
+    useState<EnqueueAnalysisJobsResponse | null>(null);
 
   const selectedCount = useMemo(
     () => Object.values(selectedGames).filter(Boolean).length,
@@ -116,6 +123,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
     setLogoutError(null);
     setImportSummary(null);
     setReimportSummary(null);
+    setAnalysisSummary(null);
 
     if (!session?.access_token) {
       setLogoutError('Session invalide, reconnecte-toi puis réessaie.');
@@ -166,6 +174,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
 
     setIsImportingGames(true);
     setReimportSummary(null);
+    setAnalysisSummary(null);
 
     try {
       const summary = await importSelectedChessComGames({
@@ -186,6 +195,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
   async function handleReimportGames() {
     setLogoutError(null);
     setImportSummary(null);
+    setAnalysisSummary(null);
 
     if (!session?.access_token) {
       setLogoutError('Session invalide, reconnecte-toi puis réessaie.');
@@ -220,6 +230,31 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
     }
   }
 
+  async function handleEnqueueAnalysis() {
+    setLogoutError(null);
+
+    if (!session?.access_token) {
+      setLogoutError('Session invalide, reconnecte-toi puis réessaie.');
+      return;
+    }
+
+    setIsEnqueuingAnalysis(true);
+
+    try {
+      const summary = await enqueueAnalysisJobs({
+        accessToken: session.access_token,
+      });
+      setAnalysisSummary(summary);
+    } catch (error) {
+      setAnalysisSummary(null);
+      setLogoutError(
+        error instanceof Error ? error.message : 'Mise en file des analyses impossible.',
+      );
+    } finally {
+      setIsEnqueuingAnalysis(false);
+    }
+  }
+
   function toggleGameSelection(gameUrl: string) {
     setSelectedGames((previous) => ({
       ...previous,
@@ -243,7 +278,8 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
             isDeleting ||
             isFetchingGames ||
             isImportingGames ||
-            isReimportingGames
+            isReimportingGames ||
+            isEnqueuingAnalysis
           }
         >
           {isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}
@@ -293,12 +329,33 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           type="button"
           onClick={handleReimportGames}
           disabled={
-            isReimportingGames || isDeleting || isFetchingGames || isImportingGames
+            isReimportingGames ||
+            isDeleting ||
+            isFetchingGames ||
+            isImportingGames ||
+            isEnqueuingAnalysis
           }
         >
           {isReimportingGames
             ? 'Réimport en cours...'
             : 'Réimporter sans doublons (parties récentes)'}
+        </button>
+
+        <button
+          className="auth-submit import-submit import-submit-secondary"
+          type="button"
+          onClick={handleEnqueueAnalysis}
+          disabled={
+            isEnqueuingAnalysis ||
+            isDeleting ||
+            isFetchingGames ||
+            isImportingGames ||
+            isReimportingGames
+          }
+        >
+          {isEnqueuingAnalysis
+            ? 'Mise en file...'
+            : 'Démarrer l’analyse asynchrone (parties importées)'}
         </button>
 
         {candidateGames.length > 0 ? (
@@ -355,6 +412,14 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           </div>
         ) : null}
 
+        {analysisSummary ? (
+          <div className="import-summary">
+            <p>Analyse lancée.</p>
+            <p>Jobs créés: {analysisSummary.enqueued_count}</p>
+            <p>Jobs ignorés (déjà en cours): {analysisSummary.skipped_count}</p>
+          </div>
+        ) : null}
+
         {unavailablePeriods.length > 0 ? (
           <div className="import-warning">
             <p>Périodes indisponibles:</p>
@@ -389,7 +454,8 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
             isLoggingOut ||
             isFetchingGames ||
             isImportingGames ||
-            isReimportingGames
+            isReimportingGames ||
+            isEnqueuingAnalysis
           }
         >
           {isDeleting ? 'Suppression...' : 'Supprimer mon compte'}
