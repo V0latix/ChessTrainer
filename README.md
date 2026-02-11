@@ -87,6 +87,12 @@ npm run dev
   - API endpoint: `GET /analysis/jobs/:job_id`.
   - Returns explicit per-job execution state (`queued`/`running`/`completed`/`failed`) with `progress_percent` and `eta_seconds`.
   - Onboarding polls tracked jobs every 2s, shows a visible progress bar + ETA, and displays explicit completion state when all tracked jobs are terminal.
+- API contract + observability enforcement (Story 3.5):
+  - Added contract tests to enforce `snake_case` public payload keys (`apps/api/src/contracts/api-snake-case.contract.spec.ts`).
+  - API emits structured JSON logs for completed requests with `trace_id`, status, duration, and user context when available.
+  - API captures controller/runtime exceptions through Sentry when `SENTRY_DSN` is configured.
+  - Worker emits structured JSON logs for bootstrap/batch/job events and captures failures through Sentry (`SENTRY_DSN` or `WORKER_SENTRY_DSN`).
+  - Web initializes optional Sentry capture with environment/release metadata (`VITE_SENTRY_*`) and captures global runtime errors.
 
 ## Useful Commands
 

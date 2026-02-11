@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { Chess } from 'chess.js';
 import type { WorkerConfig } from '../config.js';
+import { logError, logInfo } from '../observability/logger.js';
+import { captureWorkerException } from '../observability/sentry.js';
 import { StockfishAnalysisError, StockfishService } from './stockfish.service.js';
 
 type QueuedJob = {
@@ -60,6 +62,11 @@ export class AnalysisWorkerService {
   }
 
   private async processJob(job: QueuedJob) {
+    logInfo({
+      event: 'analysis_job_lock_attempt',
+      analysis_job_id: job.id,
+    });
+
     const lockResult = await this.prisma.analysisJob.updateMany({
       where: {
         id: job.id,
@@ -77,6 +84,10 @@ export class AnalysisWorkerService {
     });
 
     if (lockResult.count === 0) {
+      logInfo({
+        event: 'analysis_job_lock_skipped',
+        analysis_job_id: job.id,
+      });
       return false;
     }
 
@@ -102,6 +113,12 @@ export class AnalysisWorkerService {
             errorMessage: null,
           },
         });
+
+        logInfo({
+          event: 'analysis_job_completed',
+          analysis_job_id: job.id,
+          attempts: attempt,
+        });
         await this.refreshRecentSummaries(executionResult.userId);
 
         return true;
@@ -109,7 +126,15 @@ export class AnalysisWorkerService {
         const isTransient = this.isTransientError(error);
 
         if (isTransient && attempt < maxAttempts) {
-          await this.sleep(this.resolveBackoffDelayMs(attempt));
+          const backoffDelayMs = this.resolveBackoffDelayMs(attempt);
+          logInfo({
+            event: 'analysis_job_retry_scheduled',
+            analysis_job_id: job.id,
+            attempt,
+            max_attempts: maxAttempts,
+            backoff_delay_ms: backoffDelayMs,
+          });
+          await this.sleep(backoffDelayMs);
           continue;
         }
 
@@ -125,6 +150,18 @@ export class AnalysisWorkerService {
             errorCode: code,
             errorMessage: reason,
           },
+        });
+
+        logError({
+          event: 'analysis_job_failed',
+          analysis_job_id: job.id,
+          attempts: attempt,
+          error_code: code,
+          error_message: reason,
+        });
+        captureWorkerException(error, {
+          event: 'analysis_job_failed',
+          analysis_job_id: job.id,
         });
 
         return true;

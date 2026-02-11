@@ -5,13 +5,17 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { RequestWithAuthUser } from './common/types/authenticated-user';
 import { AppModule } from './app.module';
+import { ExceptionCaptureInterceptor } from './observability/exception-capture.interceptor';
+import { initApiSentry } from './observability/sentry';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const webOrigin = process.env.WEB_APP_ORIGIN ?? 'http://localhost:5173';
+  const sentryEnabled = initApiSentry();
 
   app.set('trust proxy', 1);
   app.use(helmet());
+  app.useGlobalInterceptors(new ExceptionCaptureInterceptor());
   app.enableCors({
     origin: [webOrigin],
     credentials: true,
@@ -27,6 +31,36 @@ async function bootstrap() {
 
       request.traceId = traceId;
       response.setHeader('x-trace-id', traceId);
+      next();
+    },
+  );
+
+  app.use(
+    (request: RequestWithAuthUser, response: Response, next: NextFunction) => {
+      const startedAt = Date.now();
+
+      response.on('finish', () => {
+        const durationMs = Date.now() - startedAt;
+        const logPayload = {
+          level: response.statusCode >= 500 ? 'error' : 'info',
+          event: 'api_request_completed',
+          trace_id: request.traceId ?? 'missing-trace-id',
+          method: request.method,
+          path: request.originalUrl ?? request.url,
+          status_code: response.statusCode,
+          duration_ms: durationMs,
+          user_id: request.authUser?.local_user_id ?? null,
+          timestamp: new Date().toISOString(),
+        };
+
+        const serialized = JSON.stringify(logPayload);
+        if (response.statusCode >= 500) {
+          console.error(serialized);
+        } else {
+          console.log(serialized);
+        }
+      });
+
       next();
     },
   );
@@ -59,6 +93,16 @@ async function bootstrap() {
     );
   }
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3000);
+  await app.listen(port);
+  console.log(
+    JSON.stringify({
+      level: 'info',
+      event: 'api_bootstrap',
+      port,
+      sentry_enabled: sentryEnabled,
+      timestamp: new Date().toISOString(),
+    }),
+  );
 }
 void bootstrap();
