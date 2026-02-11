@@ -43,6 +43,10 @@ npm run dev
   - API enforces HTTPS-only in `production`.
   - `x-trace-id` is attached to responses and reused in audit logs.
   - `GET /auth/audit-logs` is available for authenticated audit-log review.
+- Chess.com candidate listing (Story 2.1):
+  - Onboarding includes username fetch to list recent candidate games as selectable entries.
+  - API endpoint: `GET /imports/chess-com/candidate-games?username=<name>&archives_count=<n>`.
+  - Unavailable archive periods are returned and displayed gracefully.
 
 ## Useful Commands
 

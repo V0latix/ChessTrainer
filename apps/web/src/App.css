@@ -190,6 +190,76 @@
   cursor: wait;
 }
 
+.import-zone {
+  margin-top: 28px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  background: linear-gradient(180deg, #111a30 0%, #0d1324 100%);
+}
+
+.import-zone h2 {
+  margin: 0 0 8px;
+  color: var(--primary);
+}
+
+.import-zone p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.import-form {
+  display: grid;
+  gap: 10px;
+  max-width: 420px;
+}
+
+.import-meta {
+  margin: 10px 0 0;
+  color: #c5cede;
+}
+
+.candidate-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.candidate-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #0a1020;
+}
+
+.candidate-checkbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--text);
+}
+
+.import-warning {
+  margin-top: 12px;
+  border: 1px solid #685a1c;
+  border-radius: 10px;
+  padding: 10px;
+  background: #1b180b;
+}
+
+.import-warning p {
+  margin: 0 0 6px;
+  color: #f6de82;
+}
+
+.import-warning ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #e4d6a7;
+}
+
 .auth-message {
   margin-top: 12px;
 }

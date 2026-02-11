@@ -4,12 +4,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OnboardingPage } from './OnboardingPage';
 
-const { signOutMock, deleteAccountFromApiMock } = vi.hoisted(() => {
-  return {
-    signOutMock: vi.fn(),
-    deleteAccountFromApiMock: vi.fn(),
-  };
-});
+const { signOutMock, deleteAccountFromApiMock, listChessComCandidateGamesMock } = vi.hoisted(
+  () => {
+    return {
+      signOutMock: vi.fn(),
+      deleteAccountFromApiMock: vi.fn(),
+      listChessComCandidateGamesMock: vi.fn(),
+    };
+  },
+);
 
 vi.mock('../../lib/supabase', () => {
   return {
@@ -24,6 +27,12 @@ vi.mock('../../lib/supabase', () => {
 vi.mock('../../lib/account-delete', () => {
   return {
     deleteAccountFromApi: deleteAccountFromApiMock,
+  };
+});
+
+vi.mock('../../lib/chess-com', () => {
+  return {
+    listChessComCandidateGames: listChessComCandidateGamesMock,
   };
 });
 
@@ -46,6 +55,7 @@ describe('OnboardingPage', () => {
   beforeEach(() => {
     signOutMock.mockReset();
     deleteAccountFromApiMock.mockReset();
+    listChessComCandidateGamesMock.mockReset();
   });
 
   it('logs out and calls onLoggedOut', async () => {
@@ -66,6 +76,53 @@ describe('OnboardingPage', () => {
       expect(signOutMock).toHaveBeenCalledTimes(1);
       expect(onLoggedOut).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('fetches chess.com candidate games and displays them as selectable', async () => {
+    const user = userEvent.setup();
+
+    listChessComCandidateGamesMock.mockResolvedValue({
+      username: 'leo',
+      candidate_games: [
+        {
+          game_url: 'https://www.chess.com/game/live/123',
+          period: '2026-02',
+          end_time: '2026-02-11T00:00:00.000Z',
+          time_class: 'blitz',
+          rated: true,
+          rules: 'chess',
+          white_username: 'leo',
+          black_username: 'maxime',
+          white_result: 'win',
+          black_result: 'checkmated',
+          selectable: true,
+        },
+      ],
+      unavailable_periods: [
+        {
+          period: '2026-01',
+          archive_url: 'https://api.chess.com/pub/player/leo/games/2026/01',
+          reason: 'archive_unavailable_503',
+        },
+      ],
+      total_candidate_games: 1,
+    });
+
+    render(
+      <MemoryRouter>
+        <OnboardingPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText(/pseudo chess.com/i), 'leo');
+    await user.click(screen.getByRole('button', { name: /lister mes parties/i }));
+
+    await waitFor(() => {
+      expect(listChessComCandidateGamesMock).toHaveBeenCalledWith('access-token-1', 'leo');
+      expect(screen.getByText(/leo vs maxime/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/2026-01 \(archive_unavailable_503\)/i)).toBeInTheDocument();
   });
 
   it('blocks delete account until confirmation is checked', async () => {
