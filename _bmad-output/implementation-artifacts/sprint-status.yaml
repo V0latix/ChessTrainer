@@ -1,0 +1,73 @@
+# generated: 2026-02-11 17:39
+# project: ChessTrainer
+# project_key: chesstrainer
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog -> in-progress: Automatically when first story is created (via create-story)
+#   - in-progress -> done: Manually when all stories reach done
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in implementation artifacts
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+generated: 2026-02-11 17:39
+project: ChessTrainer
+project_key: chesstrainer
+tracking_system: file-system
+story_location: "_bmad-output/implementation-artifacts"
+
+development_status:
+  epic-1: in-progress
+  1-1-set-up-project-from-approved-starter-template: ready-for-dev
+  1-2-register-account-with-age-gate: backlog
+  1-3-login-and-logout-securely: backlog
+  1-4-sync-supabase-identity-to-local-user-record: backlog
+  1-5-delete-account-with-full-data-cascade: backlog
+  1-6-enforce-security-baseline-and-audit-logging: backlog
+  epic-1-retrospective: optional
+  epic-2: backlog
+  2-1-connect-chess-com-and-list-candidate-games: backlog
+  2-2-import-selected-games: backlog
+  2-3-re-import-incrementally-without-duplicates: backlog
+  2-4-apply-retry-and-backoff-on-chess-com-limits: backlog
+  epic-2-retrospective: optional
+  epic-3: backlog
+  3-1-enqueue-analysis-jobs-from-imported-games: backlog
+  3-2-run-stockfish-analysis-in-worker: backlog
+  3-3-detect-and-persist-critical-mistakes: backlog
+  3-4-expose-polling-status-with-progress-and-eta: backlog
+  3-5-enforce-api-contract-and-platform-observability: backlog
+  epic-3-retrospective: optional
+  epic-4: backlog
+  4-1-open-mistake-position-as-playable-puzzle: backlog
+  4-2-evaluate-attempt-and-enable-retry: backlog
+  4-3-sequence-puzzles-in-session-flow: backlog
+  4-4-explain-wrong-move-and-best-move: backlog
+  4-5-accessibility-hardening-for-puzzle-and-explanation-flow: backlog
+  epic-4-retrospective: optional
+  epic-5: backlog
+  5-1-show-session-progress-summary: backlog
+  5-2-show-recurring-mistake-trends: backlog
+  5-3-expose-stored-data-inventory: backlog
+  5-4-delete-stored-games-and-analyses: backlog
+  epic-5-retrospective: optional
+  epic-6: backlog
+  6-1-coach-access-to-student-review-context: backlog
+  6-2-coach-import-and-mistake-review: backlog
+  epic-6-retrospective: optional

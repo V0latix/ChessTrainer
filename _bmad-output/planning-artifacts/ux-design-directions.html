@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChessTrainer — UX Design Directions</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+    :root {
+      --bg: #05070f;
+      --surface: #0d1324;
+      --surface-muted: #111a30;
+      --text: #e6edf7;
+      --muted: #98a2b3;
+      --border: #1c2742;
+      --primary: #7bb3ff;
+      --primary-strong: #5a8eff;
+      --danger: #f06a87;
+      --radius-sm: 10px;
+      --radius-lg: 18px;
+      --space-1: 8px;
+      --space-2: 16px;
+      --space-3: 24px;
+      --space-4: 32px;
+      --space-5: 48px;
+      --shadow: 0 10px 30px rgba(5, 7, 15, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Sora", system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #0d1324 0%, #05070f 55%), #05070f;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    header {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: var(--space-5) var(--space-3) var(--space-3);
+    }
+
+    header h1 {
+      font-size: 34px;
+      margin: 0 0 var(--space-2);
+      font-weight: 600;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 820px;
+    }
+
+    .directions {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 var(--space-3) var(--space-5);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: var(--space-3);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-3);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .card small {
+      color: var(--muted);
+      font-family: "Space Mono", monospace;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    .mock {
+      background: linear-gradient(160deg, #0d1324 0%, #0b1020 100%);
+      border-radius: var(--radius-lg);
+      border: 1px solid #182446;
+      padding: var(--space-2);
+      display: grid;
+      gap: var(--space-2);
+    }
+
+    .mock .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-2);
+      border-radius: var(--radius-sm);
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+    }
+
+    .badge {
+      background: rgba(123, 179, 255, 0.15);
+      color: var(--primary);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-family: "Space Mono", monospace;
+    }
+
+    .grid {
+      display: grid;
+      gap: var(--space-2);
+    }
+
+    .grid.two {
+      grid-template-columns: 1.2fr 0.8fr;
+    }
+
+    .panel {
+      background: var(--surface-muted);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2);
+    }
+
+    .row {
+      display: flex;
+      gap: var(--space-2);
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .pill {
+      background: #0b1a34;
+      border: 1px solid #23325c;
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+
+    .btn {
+      background: var(--primary);
+      color: #0b1222;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .list div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .board {
+      height: 140px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #0e1933 0%, #121b36 100%);
+      border: 1px solid #23325c;
+      display: grid;
+      place-items: center;
+      font-family: "Space Mono", monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .footer-note {
+      margin-top: var(--space-2);
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ChessTrainer — UX Design Directions</h1>
+    <p>Six visual directions based on the dark, premium palette and the core loop: import → analyze → replay → explain. Review each direction and tell me which one feels right or which elements to combine.</p>
+  </header>
+
+  <section class="directions">
+    <article class="card">
+      <small>Direction 01</small>
+      <h2>Mistake-Focused Flow</h2>
+      <div class="mock">
+        <div class="topbar">
+          <div>Last import: 12 games</div>
+          <span class="badge">Top 3 Mistakes</span>
+        </div>
+        <div class="grid two">
+          <div class="panel">
+            <div class="board">Board / Puzzle</div>
+            <div class="row">
+              <span class="pill">Move 22</span>
+              <span class="btn">Play Best Move</span>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="list">
+              <div><span>Mistake: Blunder</span><span>-2.3</span></div>
+              <div><span>Why wrong</span><span>Piece hung</span></div>
+              <div><span>Best idea</span><span>Tempo gain</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Strong focus on explanation clarity and immediate replay.</p>
+    </article>
+
+    <article class="card">
+      <small>Direction 02</small>
+      <h2>Minimalist Rail</h2>
+      <div class="mock">
+        <div class="topbar">
+          <div>Session: 10 min</div>
+          <span class="badge">Progress 2/5</span>
+        </div>
+        <div class="grid">
+          <div class="panel">
+            <div class="board">Puzzle</div>
+            <div class="row">
+              <span class="pill">Hint</span>
+              <span class="btn">Submit Move</span>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="row"><span>Explanation</span><span class="pill">Concise</span></div>
+            <p class="muted">Short, focused coaching that fits one screen.</p>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Single-column flow, zero distractions.</p>
+    </article>
+
+    <article class="card">
+      <small>Direction 03</small>
+      <h2>Split Board + Insight</h2>
+      <div class="mock">
+        <div class="topbar">
+          <div>Chess.com import ✓</div>
+          <span class="badge">Insight Panel</span>
+        </div>
+        <div class="grid two">
+          <div class="panel">
+            <div class="board">Board / Replay</div>
+          </div>
+          <div class="panel">
+            <div class="list">
+              <div><span>Key error</span><span>Fork missed</span></div>
+              <div><span>Winning line</span><span>+1.8</span></div>
+              <div><span>Takeaway</span><span>Watch C‑file</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Balanced: board on left, insight on right.</p>
+    </article>
+
+    <article class="card">
+      <small>Direction 04</small>
+      <h2>Progress Ring</h2>
+      <div class="mock">
+        <div class="topbar">
+          <div>Daily Session</div>
+          <span class="badge">Consistency</span>
+        </div>
+        <div class="grid two">
+          <div class="panel">
+            <div class="board">Puzzle</div>
+          </div>
+          <div class="panel">
+            <div class="row"><span>Today’s goal</span><span class="pill">5 puzzles</span></div>
+            <div class="row"><span>Streak</span><span class="pill">4 days</span></div>
+            <div class="btn">Continue</div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Motivational but still premium and calm.</p>
+    </article>
+
+    <article class="card">
+      <small>Direction 05</small>
+      <h2>Coach Notes</h2>
+      <div class="mock">
+        <div class="topbar">
+          <div>Coach view</div>
+          <span class="badge">Student A</span>
+        </div>
+        <div class="grid">
+          <div class="panel">
+            <div class="list">
+              <div><span>Top error</span><span>Back rank</span></div>
+              <div><span>Fix</span><span>Air move</span></div>
+              <div><span>Next drill</span><span>3 puzzles</span></div>
+            </div>
+          </div>
+          <div class="panel">
+            <p class="muted">Exportable coaching notes and quick insight.</p>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Secondary user flow, minimal edits needed.</p>
+    </article>
+
+    <article class="card">
+      <small>Direction 06</small>
+      <h2>Drill Cards</h2>
+      <div class="mock">
+        <div class="topbar">
+          <div>Mistake Library</div>
+          <span class="badge">3 drills</span>
+        </div>
+        <div class="grid">
+          <div class="panel">
+            <div class="row"><span>Hanging piece</span><span class="pill">3m</span></div>
+            <div class="row"><span>Missed fork</span><span class="pill">5m</span></div>
+            <div class="row"><span>Endgame slip</span><span class="pill">4m</span></div>
+          </div>
+          <div class="panel">
+            <div class="btn">Start next drill</div>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Session-based cards, good for quick wins.</p>
+    </article>
+  </section>
+</body>
+</html>
