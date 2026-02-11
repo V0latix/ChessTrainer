@@ -24,6 +24,8 @@ vi.mock('./auth-context', () => {
   return {
     useAuth: () => ({
       isConfigured: true,
+      isLoading: false,
+      session: null,
     }),
   };
 });
@@ -49,7 +51,7 @@ describe('RegisterPage', () => {
     expect(signUpMock).not.toHaveBeenCalled();
     expect(
       screen.getByText('Tu dois confirmer que tu as au moins 16 ans pour créer un compte.'),
-    ).toBeTruthy();
+    ).toBeInTheDocument();
   });
 
   it('creates account and calls onRegistered when a session is returned', async () => {

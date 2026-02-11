@@ -9,7 +9,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!session) {
-    return <Navigate to="/register" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;

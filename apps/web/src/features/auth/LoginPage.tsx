@@ -3,19 +3,17 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './auth-context';
 import { supabase } from '../../lib/supabase';
 
-type RegisterPageProps = {
-  onRegistered?: () => void;
+type LoginPageProps = {
+  onLoggedIn?: () => void;
 };
 
-export function RegisterPage({ onRegistered }: RegisterPageProps) {
+export function LoginPage({ onLoggedIn }: LoginPageProps) {
   const navigate = useNavigate();
   const { isConfigured, isLoading, session } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isAgeConfirmed, setIsAgeConfirmed] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (isLoading) {
@@ -27,8 +25,8 @@ export function RegisterPage({ onRegistered }: RegisterPageProps) {
   }
 
   const handleSuccess = () => {
-    if (onRegistered) {
-      onRegistered();
+    if (onLoggedIn) {
+      onLoggedIn();
       return;
     }
 
@@ -38,12 +36,6 @@ export function RegisterPage({ onRegistered }: RegisterPageProps) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
-    setSuccessMessage(null);
-
-    if (!isAgeConfirmed) {
-      setErrorMessage('Tu dois confirmer que tu as au moins 16 ans pour créer un compte.');
-      return;
-    }
 
     if (!supabase || !isConfigured) {
       setErrorMessage('Configuration Supabase manquante. Ajoute les variables VITE_SUPABASE_* .');
@@ -52,15 +44,9 @@ export function RegisterPage({ onRegistered }: RegisterPageProps) {
 
     setIsSubmitting(true);
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-      options: {
-        data: {
-          age_confirmed: true,
-          age_confirmed_at: new Date().toISOString(),
-        },
-      },
     });
 
     setIsSubmitting(false);
@@ -70,19 +56,19 @@ export function RegisterPage({ onRegistered }: RegisterPageProps) {
       return;
     }
 
-    if (data.session) {
-      handleSuccess();
+    if (!data.session) {
+      setErrorMessage('Session invalide. Réessaie.');
       return;
     }
 
-    setSuccessMessage('Compte créé. Vérifie ton email pour activer la session.');
+    handleSuccess();
   }
 
   return (
     <main className="auth-shell">
       <section className="auth-card">
-        <h1>Créer un compte ChessTrainer</h1>
-        <p className="auth-subtitle">Inscris-toi pour analyser tes parties et corriger tes erreurs.</p>
+        <h1>Connexion ChessTrainer</h1>
+        <p className="auth-subtitle">Connecte-toi pour continuer ton entraînement.</p>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <label className="auth-label" htmlFor="email">
@@ -105,33 +91,22 @@ export function RegisterPage({ onRegistered }: RegisterPageProps) {
             id="password"
             type="password"
             className="auth-input"
-            autoComplete="new-password"
+            autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            minLength={8}
             required
           />
 
-          <label className="auth-checkbox">
-            <input
-              type="checkbox"
-              checked={isAgeConfirmed}
-              onChange={(event) => setIsAgeConfirmed(event.target.checked)}
-            />
-            <span>Je confirme avoir au moins 16 ans.</span>
-          </label>
-
           <button className="auth-submit" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Création...' : 'Créer mon compte'}
+            {isSubmitting ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
 
         <p className="auth-switch">
-          Déjà inscrit ? <Link to="/login">Se connecter</Link>
+          Pas encore inscrit ? <Link to="/register">Créer un compte</Link>
         </p>
 
         {errorMessage ? <p className="auth-message auth-message-error">{errorMessage}</p> : null}
-        {successMessage ? <p className="auth-message auth-message-success">{successMessage}</p> : null}
       </section>
     </main>
   );

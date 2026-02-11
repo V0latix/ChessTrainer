@@ -25,6 +25,13 @@
   margin-bottom: 24px;
 }
 
+.hero-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
 .hero h1 {
   font-size: 2.25rem;
   margin: 0 0 8px;
@@ -135,8 +142,36 @@
   cursor: wait;
 }
 
+.logout-button {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0a1020;
+  color: var(--text);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.logout-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 .auth-message {
   margin-top: 12px;
+}
+
+.auth-switch {
+  margin-top: 14px;
+  color: var(--muted);
+}
+
+.auth-switch a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
 }
 
 .auth-message-error {

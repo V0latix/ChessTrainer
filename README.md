@@ -28,7 +28,9 @@ npm run dev
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
 - Open web app on `/register` to create account with age-gate checkbox (16+).
-- Successful signup with active session redirects to `/onboarding`.
+- Login is available on `/login`.
+- Successful login/signup with active session redirects to `/onboarding`.
+- Logout button in onboarding invalidates the session and redirects to `/login`.
 
 ## Useful Commands
 
