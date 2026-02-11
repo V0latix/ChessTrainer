@@ -5,6 +5,7 @@ import { AnalysisJobsController } from '../modules/analysis-jobs/analysis-jobs.c
 import { AuthController } from '../modules/auth/auth.controller';
 import { ImportsController } from '../modules/imports/imports.controller';
 import { PuzzlesController } from '../modules/puzzles/puzzles.controller';
+import { ProgressController } from '../modules/progress/progress.controller';
 
 const SNAKE_CASE_KEY = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
@@ -317,5 +318,58 @@ describe('API snake_case contract', () => {
     );
 
     expectSnakeCaseKeys(attemptResult);
+  });
+
+  it('enforces snake_case keys for progress payloads', async () => {
+    const controller = new ProgressController({
+      getSummary: jest.fn().mockResolvedValue({
+        generated_at: '2026-02-11T00:00:00.000Z',
+        sessions_completed: 2,
+        puzzles_completed: 15,
+        puzzles_solved: 10,
+        puzzles_skipped: 5,
+        success_rate_percent: 66.7,
+        last_session_at: '2026-02-10T00:00:00.000Z',
+        recent_mistakes: [
+          {
+            category: 'endgame_blunder',
+            mistake_count: 7,
+            average_eval_drop_cp: 320,
+            updated_at: '2026-02-11T00:00:00.000Z',
+          },
+        ],
+      }),
+      recordPuzzleSession: jest.fn().mockResolvedValue({
+        session_id: 'session-1',
+        total_puzzles: 10,
+        solved_puzzles: 6,
+        skipped_puzzles: 4,
+        success_rate_percent: 60,
+        created_at: '2026-02-11T00:00:00.000Z',
+      }),
+    } as any);
+
+    const summaryResult = await controller.getSummary({
+      local_user_id: 'user-1',
+      supabase_sub: 'sub-1',
+      email: 'leo@example.com',
+      role: 'user',
+    });
+    expectSnakeCaseKeys(summaryResult);
+
+    const recordResult = await controller.recordPuzzleSession(
+      {
+        local_user_id: 'user-1',
+        supabase_sub: 'sub-1',
+        email: 'leo@example.com',
+        role: 'user',
+      },
+      {
+        total_puzzles: 10,
+        solved_puzzles: 6,
+        skipped_puzzles: 4,
+      },
+    );
+    expectSnakeCaseKeys(recordResult);
   });
 });

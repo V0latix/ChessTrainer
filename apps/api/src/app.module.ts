@@ -5,6 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AnalysisJobsModule } from './modules/analysis-jobs/analysis-jobs.module';
 import { ImportsModule } from './modules/imports/imports.module';
 import { PuzzlesModule } from './modules/puzzles/puzzles.module';
+import { ProgressModule } from './modules/progress/progress.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -14,6 +15,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ImportsModule,
     AnalysisJobsModule,
     PuzzlesModule,
+    ProgressModule,
   ],
   controllers: [AppController],
   providers: [AppService],

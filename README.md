@@ -124,6 +124,18 @@ npm run dev
   - Puzzle attempt feedback announces status changes and receives programmatic focus after evaluation.
   - Board square labels now include piece names (screen-reader friendly), not only unicode symbols.
   - Core interactive controls respect minimum `44x44` target sizing guidance.
+- Session progress summary (Story 5.1):
+  - API endpoints:
+    - `GET /progress/summary` (key metrics + recent mistakes)
+    - `POST /progress/sessions` (persist one completed puzzle session)
+  - Puzzle page now persists a session summary automatically once a session is completed.
+  - New protected web route: `/progress`.
+  - Progress page shows compact metrics:
+    - sessions completed
+    - puzzles completed / solved / skipped
+    - success indicator (%)
+    - recurring mistake categories
+  - Data model update: new `puzzle_sessions` table (`PuzzleSession` Prisma model).
 
 ## Useful Commands
 

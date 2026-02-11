@@ -30,6 +30,7 @@ model User {
   analysisJobs    AnalysisJob[]
   criticalMistakes CriticalMistake[]
   mistakeSummaries UserMistakeSummary[]
+  puzzleSessions  PuzzleSession[]
 
   @@map("users")
 }
@@ -146,6 +147,21 @@ model UserMistakeSummary {
   @@unique([userId, category])
   @@index([userId, mistakeCount])
   @@map("user_mistake_summaries")
+}
+
+model PuzzleSession {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  source        String   @default("mistake_replay")
+  totalPuzzles  Int      @map("total_puzzles")
+  solvedPuzzles Int      @map("solved_puzzles")
+  skippedPuzzles Int     @map("skipped_puzzles")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("puzzle_sessions")
 }
 
 model AuditLog {

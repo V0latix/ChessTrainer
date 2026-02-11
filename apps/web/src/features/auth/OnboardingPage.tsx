@@ -425,6 +425,9 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           <p className="hero-link-row">
             <Link to="/puzzle">Ouvrir un puzzle basé sur mes erreurs</Link>
           </p>
+          <p className="hero-link-row">
+            <Link to="/progress">Voir mon résumé de progression</Link>
+          </p>
         </div>
         <button
           className="logout-button"

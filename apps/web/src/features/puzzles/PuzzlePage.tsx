@@ -4,6 +4,7 @@ import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
 import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
 import { Puzzle } from '../../components/Puzzle/Puzzle';
+import { recordPuzzleSession } from '../../lib/progress';
 import {
   evaluatePuzzleAttempt,
   getPuzzleSession,
@@ -25,6 +26,8 @@ export function PuzzlePage() {
   const [boardResetVersion, setBoardResetVersion] = useState(0);
   const [solvedPuzzleIds, setSolvedPuzzleIds] = useState<string[]>([]);
   const [skippedPuzzleIds, setSkippedPuzzleIds] = useState<string[]>([]);
+  const [isPersistingSession, setIsPersistingSession] = useState(false);
+  const [isSessionPersisted, setIsSessionPersisted] = useState(false);
   const attemptFeedbackRef = useRef<HTMLDivElement | null>(null);
 
   const currentPuzzle = sessionPuzzles[currentPuzzleIndex] ?? null;
@@ -61,6 +64,8 @@ export function PuzzlePage() {
         setBoardResetVersion(0);
         setSolvedPuzzleIds([]);
         setSkippedPuzzleIds([]);
+        setIsPersistingSession(false);
+        setIsSessionPersisted(false);
         setErrorMessage(null);
       } catch (error) {
         if (isCancelled) {
@@ -167,6 +172,59 @@ export function PuzzlePage() {
     attemptFeedbackRef.current?.focus();
   }, [attemptResult]);
 
+  useEffect(() => {
+    if (!session?.access_token || !isSessionComplete || totalPuzzles === 0) {
+      return;
+    }
+
+    if (isPersistingSession || isSessionPersisted) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      setIsPersistingSession(true);
+
+      try {
+        await recordPuzzleSession({
+          accessToken: session.access_token,
+          totalPuzzles,
+          solvedPuzzles: solvedPuzzleIds.length,
+          skippedPuzzles: skippedPuzzleIds.length,
+        });
+
+        if (!cancelled) {
+          setIsSessionPersisted(true);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : 'Impossible d’enregistrer ce résumé de session.',
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsPersistingSession(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    session?.access_token,
+    isSessionComplete,
+    totalPuzzles,
+    solvedPuzzleIds.length,
+    skippedPuzzleIds.length,
+    isPersistingSession,
+    isSessionPersisted,
+  ]);
+
   return (
     <main className="app-shell">
       <header className="hero">
@@ -174,6 +232,9 @@ export function PuzzlePage() {
         <p>Rejoue une séquence de positions critiques issues de tes parties.</p>
         <p>
           <Link to="/onboarding">Retour à l’onboarding</Link>
+        </p>
+        <p>
+          <Link to="/progress">Voir mon résumé de progression</Link>
         </p>
       </header>
 
@@ -221,6 +282,16 @@ export function PuzzlePage() {
           <p>
             Résolus: <strong>{solvedPuzzleIds.length}</strong> • Passés:{' '}
             <strong>{skippedPuzzleIds.length}</strong>
+          </p>
+          <p>
+            {isPersistingSession
+              ? 'Enregistrement du résumé...'
+              : isSessionPersisted
+                ? 'Résumé enregistré.'
+                : 'Résumé non enregistré.'}
+          </p>
+          <p>
+            <Link to="/progress">Ouvrir le résumé de progression</Link>
           </p>
         </section>
       ) : null}

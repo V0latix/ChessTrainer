@@ -4,6 +4,7 @@ import { OnboardingPage } from '../features/auth/OnboardingPage';
 import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { RegisterPage } from '../features/auth/RegisterPage';
 import { PuzzlePage } from '../features/puzzles/PuzzlePage';
+import { ProgressPage } from '../features/progress/ProgressPage';
 
 export function AppRouter() {
   return (
@@ -23,6 +24,14 @@ export function AppRouter() {
         element={
           <ProtectedRoute>
             <PuzzlePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/progress"
+        element={
+          <ProtectedRoute>
+            <ProgressPage />
           </ProtectedRoute>
         }
       />
