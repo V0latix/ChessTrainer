@@ -22,14 +22,30 @@ function buildPrismaMock(options?: {
 }) {
   const updates: Array<Record<string, unknown>> = [];
   const createdMoves: Array<Record<string, unknown>> = [];
+  const createdCriticalMistakes: Array<Record<string, unknown>> = [];
+  const createdSummaries: Array<Record<string, unknown>> = [];
   const queuedJobs = options?.queuedJobIds ?? ['job-1'];
 
   return {
     updates,
     createdMoves,
+    createdCriticalMistakes,
+    createdSummaries,
     prisma: {
       analysisJob: {
-        findMany: async () => queuedJobs.map((id) => ({ id })),
+        findMany: async (payload: Record<string, any>) => {
+          const status = payload?.where?.status;
+
+          if (status === 'queued') {
+            return queuedJobs.map((id) => ({ id }));
+          }
+
+          if (status === 'completed') {
+            return [{ id: 'job-1' }];
+          }
+
+          return [];
+        },
         updateMany: async () => ({ count: 1 }),
         update: async (payload: Record<string, unknown>) => {
           updates.push(payload);
@@ -37,6 +53,7 @@ function buildPrismaMock(options?: {
         },
         findUnique: async () => ({
           id: 'job-1',
+          userId: 'user-1',
           gameId: 'game-1',
           game: {
             id: 'game-1',
@@ -51,13 +68,37 @@ function buildPrismaMock(options?: {
           return payload;
         },
       },
+      criticalMistake: {
+        deleteMany: async () => ({ count: 0 }),
+        createMany: async (payload: Record<string, any>) => {
+          const rows = payload?.data ?? [];
+          createdCriticalMistakes.push(...rows);
+          return { count: rows.length };
+        },
+        groupBy: async () => [
+          {
+            category: 'opening_mistake',
+            _count: { _all: 1 },
+            _avg: { evalDropCp: 350 },
+          },
+        ],
+      },
+      userMistakeSummary: {
+        deleteMany: async () => ({ count: 0 }),
+        createMany: async (payload: Record<string, any>) => {
+          const rows = payload?.data ?? [];
+          createdSummaries.push(...rows);
+          return { count: rows.length };
+        },
+      },
     },
   };
 }
 
 describe('AnalysisWorkerService', () => {
   it('retries transient stockfish failures with exponential policy and completes job', async () => {
-    const { prisma, updates, createdMoves } = buildPrismaMock();
+    const { prisma, updates, createdMoves, createdCriticalMistakes, createdSummaries } =
+      buildPrismaMock();
     let calls = 0;
     const stockfish = {
       analyzeFen: async () => {
@@ -70,9 +111,12 @@ describe('AnalysisWorkerService', () => {
           );
         }
 
+        const cpSequence = [300, 100, 250, 80];
+        const sequenceIndex = Math.max(0, (calls - 2) % cpSequence.length);
+
         return {
           bestMoveUci: 'e2e4',
-          scoreCp: 25,
+          scoreCp: cpSequence[sequenceIndex],
           scoreMateIn: null,
           searchedDepth: 8,
         };
@@ -86,6 +130,8 @@ describe('AnalysisWorkerService', () => {
     assert.equal(result.processed, 1);
     assert.ok(calls > 1);
     assert.ok(createdMoves.length > 0);
+    assert.ok(createdCriticalMistakes.length > 0);
+    assert.ok(createdSummaries.length > 0);
 
     const completedUpdate = updates.find((update) => {
       const data = update.data as Record<string, unknown> | undefined;

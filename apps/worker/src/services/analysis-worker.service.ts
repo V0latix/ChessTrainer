@@ -7,6 +7,26 @@ type QueuedJob = {
   id: string;
 };
 
+type EvaluatedPly = {
+  plyIndex: number;
+  fen: string;
+  playedMoveUci: string;
+  bestMoveUci: string | null;
+  scoreCp: number | null;
+  scoreMateIn: number | null;
+};
+
+type CriticalMistakeRow = {
+  plyIndex: number;
+  fen: string;
+  playedMoveUci: string;
+  bestMoveUci: string;
+  evalDropCp: number;
+  phase: string;
+  severity: string;
+  category: string;
+};
+
 export class AnalysisWorkerService {
   constructor(
     private readonly prisma: PrismaClient,
@@ -69,7 +89,7 @@ export class AnalysisWorkerService {
           data: { attemptCount: attempt },
         });
 
-        await this.executeSingleAttempt(job.id);
+        const executionResult = await this.executeSingleAttempt(job.id);
 
         await this.prisma.analysisJob.update({
           where: { id: job.id },
@@ -82,6 +102,7 @@ export class AnalysisWorkerService {
             errorMessage: null,
           },
         });
+        await this.refreshRecentSummaries(executionResult.userId);
 
         return true;
       } catch (error) {
@@ -113,7 +134,7 @@ export class AnalysisWorkerService {
     return true;
   }
 
-  private async executeSingleAttempt(jobId: string) {
+  private async executeSingleAttempt(jobId: string): Promise<{ userId: string }> {
     const job = await this.prisma.analysisJob.findUnique({
       where: { id: jobId },
       include: {
@@ -145,6 +166,7 @@ export class AnalysisWorkerService {
 
     const replay = new Chess();
     const startedAt = Date.now();
+    const evaluatedPlies: EvaluatedPly[] = [];
 
     for (let index = 0; index < moveSequence.length; index += 1) {
       const currentMove = moveSequence[index];
@@ -168,6 +190,14 @@ export class AnalysisWorkerService {
           searchedDepth: analysis.searchedDepth,
         },
       });
+      evaluatedPlies.push({
+        plyIndex: index + 1,
+        fen: fenBeforeMove,
+        playedMoveUci: currentMove.uci,
+        bestMoveUci: analysis.bestMoveUci,
+        scoreCp: analysis.scoreCp,
+        scoreMateIn: analysis.scoreMateIn,
+      });
 
       replay.move(currentMove.san);
 
@@ -190,6 +220,17 @@ export class AnalysisWorkerService {
         },
       });
     }
+
+    await this.persistCriticalMistakes({
+      jobId: job.id,
+      userId: job.userId,
+      gameId: job.gameId,
+      evaluatedPlies,
+    });
+
+    return {
+      userId: job.userId,
+    };
   }
 
   private parseMoveSequence(pgn: string) {
@@ -228,5 +269,177 @@ export class AnalysisWorkerService {
 
   private async sleep(delayMs: number) {
     await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
+  private async persistCriticalMistakes(params: {
+    jobId: string;
+    userId: string;
+    gameId: string;
+    evaluatedPlies: EvaluatedPly[];
+  }) {
+    const mistakes = this.extractCriticalMistakes(params.evaluatedPlies);
+
+    await this.prisma.criticalMistake.deleteMany({
+      where: {
+        analysisJobId: params.jobId,
+      },
+    });
+
+    if (mistakes.length === 0) {
+      return;
+    }
+
+    await this.prisma.criticalMistake.createMany({
+      data: mistakes.map((mistake) => ({
+        userId: params.userId,
+        gameId: params.gameId,
+        analysisJobId: params.jobId,
+        plyIndex: mistake.plyIndex,
+        fen: mistake.fen,
+        playedMoveUci: mistake.playedMoveUci,
+        bestMoveUci: mistake.bestMoveUci,
+        evalDropCp: mistake.evalDropCp,
+        phase: mistake.phase,
+        severity: mistake.severity,
+        category: mistake.category,
+      })),
+    });
+  }
+
+  private extractCriticalMistakes(evaluatedPlies: EvaluatedPly[]): CriticalMistakeRow[] {
+    const mistakes: CriticalMistakeRow[] = [];
+
+    for (let index = 0; index < evaluatedPlies.length - 1; index += 1) {
+      const current = evaluatedPlies[index];
+      const next = evaluatedPlies[index + 1];
+
+      if (!current.bestMoveUci) {
+        continue;
+      }
+
+      if (current.playedMoveUci === current.bestMoveUci) {
+        continue;
+      }
+
+      const bestScore = this.normalizeScore(current.scoreCp, current.scoreMateIn);
+      const nextScore = this.normalizeScore(next.scoreCp, next.scoreMateIn);
+
+      if (bestScore === null || nextScore === null) {
+        continue;
+      }
+
+      const playedScore = -nextScore;
+      const drop = Math.round(bestScore - playedScore);
+
+      if (drop < 200) {
+        continue;
+      }
+
+      const severity = drop >= 500 ? 'blunder' : 'mistake';
+      const phase = this.resolvePhase(current.plyIndex);
+      const category = `${phase}_${severity}`;
+
+      mistakes.push({
+        plyIndex: current.plyIndex,
+        fen: current.fen,
+        playedMoveUci: current.playedMoveUci,
+        bestMoveUci: current.bestMoveUci,
+        evalDropCp: drop,
+        phase,
+        severity,
+        category,
+      });
+    }
+
+    return mistakes;
+  }
+
+  private normalizeScore(scoreCp: number | null, scoreMateIn: number | null) {
+    if (typeof scoreCp === 'number') {
+      return scoreCp;
+    }
+
+    if (typeof scoreMateIn === 'number' && scoreMateIn !== 0) {
+      const direction = scoreMateIn > 0 ? 1 : -1;
+      return direction * (100000 - Math.abs(scoreMateIn) * 100);
+    }
+
+    return null;
+  }
+
+  private resolvePhase(plyIndex: number) {
+    if (plyIndex <= 20) {
+      return 'opening';
+    }
+
+    if (plyIndex <= 60) {
+      return 'middlegame';
+    }
+
+    return 'endgame';
+  }
+
+  private async refreshRecentSummaries(userId: string) {
+    const recentCompletedJobs = await this.prisma.analysisJob.findMany({
+      where: {
+        userId,
+        status: 'completed',
+      },
+      select: {
+        id: true,
+      },
+      orderBy: {
+        completedAt: 'desc',
+      },
+      take: 25,
+    });
+
+    const recentJobIds = recentCompletedJobs.map((job: { id: string }) => job.id);
+
+    await this.prisma.userMistakeSummary.deleteMany({
+      where: {
+        userId,
+      },
+    });
+
+    if (recentJobIds.length === 0) {
+      return;
+    }
+
+    const grouped = await this.prisma.criticalMistake.groupBy({
+      by: ['category'],
+      where: {
+        userId,
+        analysisJobId: {
+          in: recentJobIds,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+      _avg: {
+        evalDropCp: true,
+      },
+    });
+
+    if (grouped.length === 0) {
+      return;
+    }
+
+    await this.prisma.userMistakeSummary.createMany({
+      data: grouped.map(
+        (row: {
+          category: string;
+          _count: { _all: number };
+          _avg: { evalDropCp: number | null };
+        }) => ({
+          userId,
+          category: row.category,
+          mistakeCount: row._count._all,
+          averageEvalDropCp: Math.round(row._avg.evalDropCp ?? 0),
+          recentJobsCount: recentJobIds.length,
+        }),
+      ),
+    });
   }
 }

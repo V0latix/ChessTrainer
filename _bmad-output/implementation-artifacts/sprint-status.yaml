@@ -50,7 +50,7 @@ development_status:
   epic-3: in-progress
   3-1-enqueue-analysis-jobs-from-imported-games: review
   3-2-run-stockfish-analysis-in-worker: review
-  3-3-detect-and-persist-critical-mistakes: backlog
+  3-3-detect-and-persist-critical-mistakes: review
   3-4-expose-polling-status-with-progress-and-eta: backlog
   3-5-enforce-api-contract-and-platform-observability: backlog
   epic-3-retrospective: optional

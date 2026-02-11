@@ -79,6 +79,10 @@ npm run dev
   - Stockfish binary path and worker polling:
     - `STOCKFISH_BIN_PATH` (default `stockfish`)
     - `WORKER_POLL_INTERVAL_MS`, `WORKER_BATCH_SIZE`, `WORKER_RUN_ONCE`
+- Critical mistake extraction + summaries (Story 3.3):
+  - Worker extracts `critical_mistakes` when evaluation drop is `>= 200cp` (`>= 2.0` pawns), with severity and phase categories.
+  - Mistakes are persisted per analyzed game and deduplicated per `(analysis_job_id, ply_index)`.
+  - User aggregates are regenerated from recent completed jobs into `user_mistake_summaries`.
 
 ## Useful Commands
 

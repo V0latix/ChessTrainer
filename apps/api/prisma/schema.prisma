@@ -20,14 +20,16 @@ enum AnalysisJobStatus {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  supabaseSub String   @unique @map("supabase_sub")
-  email       String?
-  role        AppRole  @default(user)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  games       Game[]
-  analysisJobs AnalysisJob[]
+  id              String             @id @default(cuid())
+  supabaseSub     String             @unique @map("supabase_sub")
+  email           String?
+  role            AppRole            @default(user)
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  games           Game[]
+  analysisJobs    AnalysisJob[]
+  criticalMistakes CriticalMistake[]
+  mistakeSummaries UserMistakeSummary[]
 
   @@map("users")
 }
@@ -48,6 +50,7 @@ model Game {
   updatedAt        DateTime      @updatedAt @map("updated_at")
   analysisJobs     AnalysisJob[]
   moveEvaluations  AnalysisMoveEvaluation[]
+  criticalMistakes CriticalMistake[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -72,6 +75,7 @@ model AnalysisJob {
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
   moveEvaluations AnalysisMoveEvaluation[]
+  criticalMistakes CriticalMistake[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -100,6 +104,48 @@ model AnalysisMoveEvaluation {
   @@unique([analysisJobId, plyIndex])
   @@index([gameId, plyIndex])
   @@map("analysis_move_evaluations")
+}
+
+model CriticalMistake {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  gameId        String   @map("game_id")
+  analysisJobId String   @map("analysis_job_id")
+  plyIndex      Int      @map("ply_index")
+  fen           String
+  playedMoveUci String   @map("played_move_uci")
+  bestMoveUci   String   @map("best_move_uci")
+  evalDropCp    Int      @map("eval_drop_cp")
+  phase         String
+  severity      String
+  category      String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game        Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  analysisJob AnalysisJob @relation(fields: [analysisJobId], references: [id], onDelete: Cascade)
+
+  @@unique([analysisJobId, plyIndex])
+  @@index([userId, createdAt])
+  @@index([userId, category])
+  @@map("critical_mistakes")
+}
+
+model UserMistakeSummary {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  category         String
+  mistakeCount     Int      @map("mistake_count")
+  averageEvalDropCp Int     @map("average_eval_drop_cp")
+  recentJobsCount  Int      @map("recent_jobs_count")
+  generatedAt      DateTime @default(now()) @map("generated_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@index([userId, mistakeCount])
+  @@map("user_mistake_summaries")
 }
 
 model AuditLog {
