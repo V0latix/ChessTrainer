@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
@@ -25,6 +25,7 @@ export function PuzzlePage() {
   const [boardResetVersion, setBoardResetVersion] = useState(0);
   const [solvedPuzzleIds, setSolvedPuzzleIds] = useState<string[]>([]);
   const [skippedPuzzleIds, setSkippedPuzzleIds] = useState<string[]>([]);
+  const attemptFeedbackRef = useRef<HTMLDivElement | null>(null);
 
   const currentPuzzle = sessionPuzzles[currentPuzzleIndex] ?? null;
   const isSessionComplete =
@@ -158,6 +159,14 @@ export function PuzzlePage() {
     [attemptResult],
   );
 
+  useEffect(() => {
+    if (!attemptResult) {
+      return;
+    }
+
+    attemptFeedbackRef.current?.focus();
+  }, [attemptResult]);
+
   return (
     <main className="app-shell">
       <header className="hero">
@@ -174,8 +183,16 @@ export function PuzzlePage() {
         </p>
       ) : null}
 
-      {isLoading ? <p className="auth-message">Chargement de la session...</p> : null}
-      {errorMessage ? <p className="auth-message auth-message-error">{errorMessage}</p> : null}
+      {isLoading ? (
+        <p className="auth-message" role="status" aria-live="polite">
+          Chargement de la session...
+        </p>
+      ) : null}
+      {errorMessage ? (
+        <p className="auth-message auth-message-error" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
 
       {!isLoading && totalPuzzles > 0 ? (
         <ProgressSummary
@@ -235,7 +252,7 @@ export function PuzzlePage() {
             source={currentPuzzle.source}
             context={currentPuzzle.context}
           />
-          <section className="panel">
+          <section className="panel" aria-live="polite">
             <h2>Contexte du coup</h2>
             <p>
               Pseudo Chess.com:{' '}
@@ -256,9 +273,16 @@ export function PuzzlePage() {
             ) : (
               <p>Joue un coup sur le board pour démarrer.</p>
             )}
-            {isSubmittingAttempt ? <p>Évaluation du coup en cours...</p> : null}
+            {isSubmittingAttempt ? (
+              <p role="status" aria-live="polite">
+                Évaluation du coup en cours...
+              </p>
+            ) : null}
             {attemptResult ? (
               <div
+                ref={attemptFeedbackRef}
+                tabIndex={-1}
+                role="status"
                 className={[
                   'attempt-result',
                   attemptResult.is_correct

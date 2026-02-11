@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Chess, type Square } from 'chess.js';
 
 type BoardProps = {
@@ -26,12 +26,28 @@ const PIECE_SYMBOLS: Record<string, string> = {
   bk: '♚',
 };
 
+const PIECE_LABELS: Record<string, string> = {
+  wp: 'pion blanc',
+  wn: 'cavalier blanc',
+  wb: 'fou blanc',
+  wr: 'tour blanche',
+  wq: 'dame blanche',
+  wk: 'roi blanc',
+  bp: 'pion noir',
+  bn: 'cavalier noir',
+  bb: 'fou noir',
+  br: 'tour noire',
+  bq: 'dame noire',
+  bk: 'roi noir',
+};
+
 export function Board({
   initialFen,
   title,
   onMovePlayed,
   isDisabled = false,
 }: BoardProps) {
+  const helpId = useId();
   const [game, setGame] = useState(() => new Chess(initialFen));
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
 
@@ -92,10 +108,20 @@ export function Board({
     <section className="panel board-panel">
       <h2>{title ?? 'Board'}</h2>
       <p className="board-meta">Trait: {sideToMove}</p>
-      <div className="board-grid" role="grid" aria-label="Échiquier interactif">
+      <p id={helpId} className="board-help">
+        Clavier: sélectionne la case de départ puis la case d’arrivée avec
+        <strong> Entrée</strong> ou <strong>Espace</strong>.
+      </p>
+      <div
+        className="board-grid"
+        role="grid"
+        aria-label="Échiquier interactif"
+        aria-describedby={helpId}
+      >
         {boardSquares.map((item) => {
           const pieceKey = item.piece ? `${item.piece.color}${item.piece.type}` : null;
           const symbol = pieceKey ? PIECE_SYMBOLS[pieceKey] : '';
+          const pieceLabel = pieceKey ? PIECE_LABELS[pieceKey] : null;
           const isSelected = selectedSquare === item.square;
 
           return (
@@ -112,7 +138,10 @@ export function Board({
                 .join(' ')}
               onClick={() => handleSquareClick(item.square)}
               disabled={isDisabled}
-              aria-label={`Case ${item.square}${symbol ? `, pièce ${symbol}` : ''}`}
+              aria-label={`Case ${item.square}${
+                pieceLabel ? `, pièce ${pieceLabel}` : ''
+              }`}
+              aria-pressed={isSelected}
             >
               {symbol}
             </button>

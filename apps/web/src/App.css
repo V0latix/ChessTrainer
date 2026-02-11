@@ -14,6 +14,11 @@
   box-sizing: border-box;
 }
 
+:focus-visible {
+  outline: 3px solid #f6de82;
+  outline-offset: 2px;
+}
+
 .app-shell {
   max-width: 1080px;
   margin: 0 auto;
@@ -55,6 +60,11 @@
   text-decoration: underline;
 }
 
+.hero-link-row a:focus-visible {
+  text-decoration: underline;
+  border-radius: 6px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -90,10 +100,21 @@
   color: #c5cede;
 }
 
+.board-help {
+  margin-bottom: 10px;
+  color: #c5cede;
+  font-size: 0.92rem;
+}
+
+.board-help strong {
+  color: var(--text);
+}
+
 .board-grid {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   width: 100%;
+  min-width: 352px;
   max-width: 420px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -104,6 +125,8 @@
   border: 0;
   margin: 0;
   aspect-ratio: 1 / 1;
+  min-width: 44px;
+  min-height: 44px;
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
@@ -116,7 +139,7 @@
 }
 
 .board-square-dark {
-  background: #5a6a85;
+  background: #485d7a;
 }
 
 .board-square-selected {
@@ -126,6 +149,11 @@
 .board-square-disabled {
   cursor: not-allowed;
   opacity: 0.75;
+}
+
+.board-square:focus-visible {
+  position: relative;
+  z-index: 1;
 }
 
 .puzzle-objective {
@@ -168,6 +196,10 @@
 
 .attempt-result p {
   margin: 0 0 8px;
+}
+
+.attempt-result:focus-visible {
+  outline-color: #f2cb62;
 }
 
 .attempt-result-correct {
@@ -274,6 +306,8 @@
   border: 0;
   border-radius: 10px;
   padding: 11px 14px;
+  min-height: 44px;
+  min-width: 44px;
   font-weight: 600;
   color: #051127;
   background: linear-gradient(180deg, var(--primary) 0%, var(--primary-strong) 100%);
@@ -291,6 +325,8 @@
   background: #0a1020;
   color: var(--text);
   padding: 10px 14px;
+  min-height: 44px;
+  min-width: 44px;
   cursor: pointer;
 }
 
@@ -322,6 +358,8 @@
   border: 0;
   border-radius: 10px;
   padding: 11px 14px;
+  min-height: 44px;
+  min-width: 44px;
   font-weight: 600;
   color: #220511;
   background: linear-gradient(180deg, #f06a87 0%, #dc5170 100%);

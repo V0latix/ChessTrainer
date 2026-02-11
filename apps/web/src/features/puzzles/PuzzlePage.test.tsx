@@ -172,8 +172,13 @@ describe('PuzzlePage', () => {
       expect(screen.getByText('Puzzle 1')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /Case h2/i }));
-    await user.click(screen.getByRole('button', { name: /Case h1/i }));
+    const from = screen.getByRole('button', { name: /Case h2, pièce pion noir/i });
+    const to = screen.getByRole('button', { name: /Case h1/i });
+
+    from.focus();
+    await user.keyboard('{Enter}');
+    to.focus();
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
       expect(evaluatePuzzleAttemptMock).toHaveBeenCalledWith({
@@ -185,9 +190,11 @@ describe('PuzzlePage', () => {
 
     expect(screen.getByText(/Pourquoi ce coup \?/i)).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole('button', { name: /Continuer au puzzle suivant/i }),
-    );
+    const continueButton = screen.getByRole('button', {
+      name: /Continuer au puzzle suivant/i,
+    });
+    continueButton.focus();
+    await user.keyboard('{Enter}');
 
     await waitFor(() => {
       expect(screen.getByText('Puzzle 2')).toBeInTheDocument();

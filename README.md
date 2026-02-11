@@ -118,6 +118,12 @@ npm run dev
     - why the played move is weaker
     - why the best move is stronger
   - Includes a short “À retenir” takeaway for fast daily review.
+- Accessibility hardening for puzzle flow (Story 4.5):
+  - Puzzle flow now exposes clearer keyboard support (board helper text + keyboard-operable squares).
+  - Focus states are persistent and highly visible across interactive controls (`:focus-visible` styling).
+  - Puzzle attempt feedback announces status changes and receives programmatic focus after evaluation.
+  - Board square labels now include piece names (screen-reader friendly), not only unicode symbols.
+  - Core interactive controls respect minimum `44x44` target sizing guidance.
 
 ## Useful Commands
 

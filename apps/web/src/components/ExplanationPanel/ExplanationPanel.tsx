@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 type ExplanationPanelProps = {
   status: 'correct' | 'incorrect';
   attemptedMoveUci: string;
@@ -13,14 +15,20 @@ export function ExplanationPanel({
   wrongMoveExplanation,
   bestMoveExplanation,
 }: ExplanationPanelProps) {
+  const headingId = useId();
   const takeaway =
     status === 'correct'
       ? 'Tu as trouvé le bon coup. Répète ce motif dans des positions similaires.'
       : `Compare ton idée au coup ${bestMoveUci} avant de jouer pour éviter ce type d’erreur.`;
 
   return (
-    <section className="panel explanation-panel" aria-live="polite">
-      <h2>Pourquoi ce coup ?</h2>
+    <section
+      className="panel explanation-panel"
+      role="region"
+      aria-labelledby={headingId}
+      aria-live="polite"
+    >
+      <h2 id={headingId}>Pourquoi ce coup ?</h2>
       <div className="explanation-block">
         <p className="explanation-label">
           Ton coup: <strong>{attemptedMoveUci}</strong>
