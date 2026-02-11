@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { env } from '../../config/env';
+import { syncIdentityWithApi } from '../../lib/auth-sync';
 import { supabase } from '../../lib/supabase';
 import { AuthContext } from './auth-context';
 import type { Session } from '@supabase/supabase-js';
@@ -33,6 +34,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!session?.access_token) {
+      return;
+    }
+
+    void syncIdentityWithApi(session.access_token).catch((error) => {
+      console.error('[auth-sync] identity sync failed', error);
+    });
+  }, [session?.access_token]);
 
   const value = useMemo(
     () => ({ session, isLoading, isConfigured: env.isSupabaseConfigured }),

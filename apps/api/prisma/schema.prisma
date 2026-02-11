@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AppRole {
+  user
+  coach
+}
+
+model User {
+  id          String   @id @default(cuid())
+  supabaseSub String   @unique @map("supabase_sub")
+  email       String?
+  role        AppRole  @default(user)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
