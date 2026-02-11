@@ -331,6 +331,10 @@
   background: #102544;
 }
 
+.data-inventory-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .auth-shell {
   min-height: 100vh;
   display: flex;

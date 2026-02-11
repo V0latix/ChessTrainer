@@ -3,6 +3,7 @@ import { AppController } from '../app.controller';
 import { AppService } from '../app.service';
 import { AnalysisJobsController } from '../modules/analysis-jobs/analysis-jobs.controller';
 import { AuthController } from '../modules/auth/auth.controller';
+import { DataInventoryController } from '../modules/data-inventory/data-inventory.controller';
 import { ImportsController } from '../modules/imports/imports.controller';
 import { PuzzlesController } from '../modules/puzzles/puzzles.controller';
 import { ProgressController } from '../modules/progress/progress.controller';
@@ -398,5 +399,51 @@ describe('API snake_case contract', () => {
       },
     );
     expectSnakeCaseKeys(recordResult);
+  });
+
+  it('enforces snake_case keys for data inventory payloads', async () => {
+    const controller = new DataInventoryController({
+      getInventory: jest.fn().mockResolvedValue({
+        generated_at: '2026-02-11T00:00:00.000Z',
+        counts: {
+          games_count: 24,
+          analyses_count: 12,
+          move_evaluations_count: 580,
+          critical_mistakes_count: 35,
+          puzzle_sessions_count: 8,
+        },
+        latest_updates: {
+          last_game_import: {
+            game_id: 'game-1',
+            game_url: 'https://www.chess.com/game/live/123',
+            chess_com_username: 'leo',
+            period: '2026-02',
+            imported_at: '2026-02-11T10:00:00.000Z',
+          },
+          last_analysis_update: {
+            job_id: 'job-1',
+            game_id: 'game-1',
+            status: 'completed',
+            updated_at: '2026-02-11T10:05:00.000Z',
+            completed_at: '2026-02-11T10:05:20.000Z',
+          },
+          last_mistake_update: {
+            mistake_id: 'mistake-1',
+            game_id: 'game-1',
+            category: 'endgame_blunder',
+            updated_at: '2026-02-11T10:06:00.000Z',
+          },
+        },
+      }),
+    } as any);
+
+    const result = await controller.getInventory({
+      local_user_id: 'user-1',
+      supabase_sub: 'sub-1',
+      email: 'leo@example.com',
+      role: 'user',
+    });
+
+    expectSnakeCaseKeys(result);
   });
 });

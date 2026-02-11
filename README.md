@@ -142,6 +142,17 @@ npm run dev
   - Each category includes a clear direction signal (`up`, `down`, `stable`, `new`) by comparing recent vs previous window.
   - New protected web route: `/progress/trends`.
   - Trends view shows ranked categories with direction badges and recent-vs-previous delta.
+- Stored data inventory (Story 5.3):
+  - API endpoint: `GET /data/inventory`.
+  - Returns stored-data counts for account transparency:
+    - games
+    - analyses
+    - move evaluations
+    - critical mistakes
+    - puzzle sessions
+  - Returns latest update context with timestamps (last imported game, last analysis update, last detected critical mistake).
+  - New protected web route: `/data/inventory`.
+  - Inventory page displays counts and recent data context for transparent storage visibility.
 
 ## Useful Commands
 

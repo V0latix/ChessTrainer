@@ -77,6 +77,9 @@ export function ProgressTrendsPage() {
         <p className="hero-link-row">
           <Link to="/progress">Retour au résumé</Link>
         </p>
+        <p className="hero-link-row">
+          <Link to="/data/inventory">Voir l’inventaire des données</Link>
+        </p>
       </header>
 
       {isLoading ? (
