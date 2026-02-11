@@ -1,6 +1,10 @@
 import { ProgressService } from './progress.service';
 
 describe('ProgressService', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('records a puzzle session and returns computed success rate', async () => {
     const create = jest.fn().mockResolvedValue({
       id: 'session-1',
@@ -152,6 +156,107 @@ describe('ProgressService', () => {
       success_rate_percent: null,
       last_session_at: null,
       recent_mistakes: [],
+    });
+  });
+
+  it('returns ranked trend categories with direction', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-02-11T12:00:00.000Z'));
+
+    const groupBy = jest
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          category: 'endgame_blunder',
+          _count: { _all: 9 },
+          _avg: { evalDropCp: 330.6 },
+        },
+        {
+          category: 'opening_mistake',
+          _count: { _all: 4 },
+          _avg: { evalDropCp: 205.4 },
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          category: 'endgame_blunder',
+          _count: { _all: 5 },
+        },
+        {
+          category: 'opening_mistake',
+          _count: { _all: 4 },
+        },
+      ]);
+
+    const service = new ProgressService({
+      criticalMistake: {
+        groupBy,
+      },
+    } as any);
+
+    await expect(
+      service.getTrends({
+        user_id: 'local-user-1',
+        window_days: 7,
+        limit: 5,
+      }),
+    ).resolves.toEqual({
+      generated_at: '2026-02-11T12:00:00.000Z',
+      window_days: 7,
+      compared_to_days: 7,
+      categories: [
+        {
+          category: 'endgame_blunder',
+          recent_count: 9,
+          previous_count: 5,
+          delta_count: 4,
+          trend_direction: 'up',
+          average_eval_drop_cp: 331,
+        },
+        {
+          category: 'opening_mistake',
+          recent_count: 4,
+          previous_count: 4,
+          delta_count: 0,
+          trend_direction: 'stable',
+          average_eval_drop_cp: 205,
+        },
+      ],
+    });
+
+    expect(groupBy).toHaveBeenCalledTimes(2);
+  });
+
+  it('marks trend as new when category only exists in recent window', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-02-11T12:00:00.000Z'));
+
+    const service = new ProgressService({
+      criticalMistake: {
+        groupBy: jest
+          .fn()
+          .mockResolvedValueOnce([
+            {
+              category: 'tactic_missed',
+              _count: { _all: 3 },
+              _avg: { evalDropCp: 240 },
+            },
+          ])
+          .mockResolvedValueOnce([]),
+      },
+    } as any);
+
+    const result = await service.getTrends({
+      user_id: 'local-user-1',
+      window_days: 14,
+      limit: 10,
+    });
+
+    expect(result.categories[0]).toEqual({
+      category: 'tactic_missed',
+      recent_count: 3,
+      previous_count: 0,
+      delta_count: 3,
+      trend_direction: 'new',
+      average_eval_drop_cp: 240,
     });
   });
 });

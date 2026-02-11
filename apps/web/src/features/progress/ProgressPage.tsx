@@ -78,6 +78,9 @@ export function ProgressPage() {
         <p className="hero-link-row">
           <Link to="/puzzle">Retour aux puzzles</Link>
         </p>
+        <p className="hero-link-row">
+          <Link to="/progress/trends">Voir les tendances</Link>
+        </p>
       </header>
 
       {isLoading ? (

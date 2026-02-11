@@ -5,6 +5,7 @@ import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { RegisterPage } from '../features/auth/RegisterPage';
 import { PuzzlePage } from '../features/puzzles/PuzzlePage';
 import { ProgressPage } from '../features/progress/ProgressPage';
+import { ProgressTrendsPage } from '../features/progress/ProgressTrendsPage';
 
 export function AppRouter() {
   return (
@@ -32,6 +33,14 @@ export function AppRouter() {
         element={
           <ProtectedRoute>
             <ProgressPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/progress/trends"
+        element={
+          <ProtectedRoute>
+            <ProgressTrendsPage />
           </ProtectedRoute>
         }
       />

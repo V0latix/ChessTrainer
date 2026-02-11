@@ -25,6 +25,20 @@ export type RecordPuzzleSessionResponse = {
   created_at: string;
 };
 
+export type ProgressTrendsResponse = {
+  generated_at: string;
+  window_days: number;
+  compared_to_days: number;
+  categories: Array<{
+    category: string;
+    recent_count: number;
+    previous_count: number;
+    delta_count: number;
+    trend_direction: 'up' | 'down' | 'stable' | 'new';
+    average_eval_drop_cp: number;
+  }>;
+};
+
 export async function getProgressSummary(params: {
   accessToken: string;
 }): Promise<ProgressSummaryResponse> {
@@ -45,6 +59,42 @@ export async function getProgressSummary(params: {
   }
 
   const payload = (await response.json()) as { data: ProgressSummaryResponse };
+  return payload.data;
+}
+
+export async function getProgressTrends(params: {
+  accessToken: string;
+  days?: number;
+  limit?: number;
+}): Promise<ProgressTrendsResponse> {
+  if (!env.apiBaseUrl) {
+    throw new Error('VITE_API_BASE_URL is missing.');
+  }
+
+  const query = new URLSearchParams();
+  if (typeof params.days === 'number') {
+    query.set('days', String(params.days));
+  }
+  if (typeof params.limit === 'number') {
+    query.set('limit', String(params.limit));
+  }
+
+  const response = await fetch(
+    `${env.apiBaseUrl}/progress/trends${query.size > 0 ? `?${query.toString()}` : ''}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${params.accessToken}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(`Progress trends fetch failed (${response.status}): ${responseText}`);
+  }
+
+  const payload = (await response.json()) as { data: ProgressTrendsResponse };
   return payload.data;
 }
 

@@ -339,6 +339,21 @@ describe('API snake_case contract', () => {
           },
         ],
       }),
+      getTrends: jest.fn().mockResolvedValue({
+        generated_at: '2026-02-11T00:00:00.000Z',
+        window_days: 14,
+        compared_to_days: 14,
+        categories: [
+          {
+            category: 'endgame_blunder',
+            recent_count: 7,
+            previous_count: 5,
+            delta_count: 2,
+            trend_direction: 'up',
+            average_eval_drop_cp: 320,
+          },
+        ],
+      }),
       recordPuzzleSession: jest.fn().mockResolvedValue({
         session_id: 'session-1',
         total_puzzles: 10,
@@ -356,6 +371,18 @@ describe('API snake_case contract', () => {
       role: 'user',
     });
     expectSnakeCaseKeys(summaryResult);
+
+    const trendsResult = await controller.getTrends(
+      {
+        local_user_id: 'user-1',
+        supabase_sub: 'sub-1',
+        email: 'leo@example.com',
+        role: 'user',
+      },
+      '14',
+      '8',
+    );
+    expectSnakeCaseKeys(trendsResult);
 
     const recordResult = await controller.recordPuzzleSession(
       {

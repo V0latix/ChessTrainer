@@ -266,6 +266,71 @@
   color: #d3dbeb;
 }
 
+.trend-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.trend-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0a1020;
+  padding: 12px;
+}
+
+.trend-title {
+  margin: 0 0 6px !important;
+}
+
+.trend-meta {
+  margin: 0 !important;
+  color: #c9d5ea !important;
+}
+
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.trend-badge-up {
+  border-color: #2f7f54;
+  color: #8be7b5;
+  background: #10291d;
+}
+
+.trend-badge-down {
+  border-color: #875040;
+  color: #ffb28f;
+  background: #2a1a14;
+}
+
+.trend-badge-stable {
+  border-color: #556180;
+  color: #c7d4ee;
+  background: #151f37;
+}
+
+.trend-badge-new {
+  border-color: #4b73ae;
+  color: #9fc3ff;
+  background: #102544;
+}
+
 .auth-shell {
   min-height: 100vh;
   display: flex;

@@ -16,6 +16,7 @@ describe('ProgressController', () => {
 
     const controller = new ProgressController({
       getSummary,
+      getTrends: jest.fn(),
       recordPuzzleSession: jest.fn(),
     } as any);
 
@@ -56,6 +57,7 @@ describe('ProgressController', () => {
 
     const controller = new ProgressController({
       getSummary: jest.fn(),
+      getTrends: jest.fn(),
       recordPuzzleSession,
     } as any);
 
@@ -95,6 +97,7 @@ describe('ProgressController', () => {
   it('rejects invalid progress session payload', async () => {
     const controller = new ProgressController({
       getSummary: jest.fn(),
+      getTrends: jest.fn(),
       recordPuzzleSession: jest.fn(),
     } as any);
 
@@ -113,5 +116,64 @@ describe('ProgressController', () => {
         },
       ),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('returns trends payload with normalized query params', async () => {
+    const getTrends = jest.fn().mockResolvedValue({
+      generated_at: '2026-02-11T00:00:00.000Z',
+      window_days: 60,
+      compared_to_days: 60,
+      categories: [
+        {
+          category: 'endgame_blunder',
+          recent_count: 9,
+          previous_count: 5,
+          delta_count: 4,
+          trend_direction: 'up',
+          average_eval_drop_cp: 320,
+        },
+      ],
+    });
+
+    const controller = new ProgressController({
+      getSummary: jest.fn(),
+      getTrends,
+      recordPuzzleSession: jest.fn(),
+    } as any);
+
+    await expect(
+      controller.getTrends(
+        {
+          local_user_id: 'local-user-1',
+          supabase_sub: 'sub-1',
+          email: 'leo@example.com',
+          role: 'user',
+        },
+        '99',
+        '99',
+      ),
+    ).resolves.toEqual({
+      data: {
+        generated_at: '2026-02-11T00:00:00.000Z',
+        window_days: 60,
+        compared_to_days: 60,
+        categories: [
+          {
+            category: 'endgame_blunder',
+            recent_count: 9,
+            previous_count: 5,
+            delta_count: 4,
+            trend_direction: 'up',
+            average_eval_drop_cp: 320,
+          },
+        ],
+      },
+    });
+
+    expect(getTrends).toHaveBeenCalledWith({
+      user_id: 'local-user-1',
+      window_days: 60,
+      limit: 20,
+    });
   });
 });

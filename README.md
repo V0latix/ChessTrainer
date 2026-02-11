@@ -136,6 +136,12 @@ npm run dev
     - success indicator (%)
     - recurring mistake categories
   - Data model update: new `puzzle_sessions` table (`PuzzleSession` Prisma model).
+- Recurring mistake trends (Story 5.2):
+  - API endpoint: `GET /progress/trends?days=<n>&limit=<n>`.
+  - Trends rank recurring mistake categories by recent count.
+  - Each category includes a clear direction signal (`up`, `down`, `stable`, `new`) by comparing recent vs previous window.
+  - New protected web route: `/progress/trends`.
+  - Trends view shows ranked categories with direction badges and recent-vs-previous delta.
 
 ## Useful Commands
 

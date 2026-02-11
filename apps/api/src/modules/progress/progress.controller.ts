@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -20,6 +21,33 @@ export class ProgressController {
   async getSummary(@CurrentUser() user: AuthenticatedUser) {
     const result = await this.progressService.getSummary({
       user_id: user.local_user_id,
+    });
+
+    return {
+      data: result,
+    };
+  }
+
+  @UseGuards(SupabaseAuthGuard)
+  @Get('trends')
+  async getTrends(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('days') days?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedDays = Number(days);
+    const parsedLimit = Number(limit);
+    const resolvedDays = Number.isFinite(parsedDays)
+      ? Math.min(60, Math.max(1, parsedDays))
+      : 14;
+    const resolvedLimit = Number.isFinite(parsedLimit)
+      ? Math.min(20, Math.max(1, parsedLimit))
+      : 8;
+
+    const result = await this.progressService.getTrends({
+      user_id: user.local_user_id,
+      window_days: resolvedDays,
+      limit: resolvedLimit,
     });
 
     return {

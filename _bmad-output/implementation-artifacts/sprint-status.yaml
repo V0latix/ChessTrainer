@@ -26,7 +26,7 @@
 #   - optional: Can be completed but not required
 #   - done: Retrospective has been completed
 
-generated: 2026-02-11 23:03
+generated: 2026-02-11 23:14
 project: ChessTrainer
 project_key: chesstrainer
 tracking_system: file-system
@@ -63,7 +63,7 @@ development_status:
   epic-4-retrospective: optional
   epic-5: in-progress
   5-1-show-session-progress-summary: review
-  5-2-show-recurring-mistake-trends: backlog
+  5-2-show-recurring-mistake-trends: review
   5-3-expose-stored-data-inventory: backlog
   5-4-delete-stored-games-and-analyses: backlog
   epic-5-retrospective: optional
