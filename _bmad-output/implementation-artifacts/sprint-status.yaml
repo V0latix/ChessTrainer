@@ -34,7 +34,7 @@ story_location: "_bmad-output/implementation-artifacts"
 
 development_status:
   epic-1: in-progress
-  1-1-set-up-project-from-approved-starter-template: ready-for-dev
+  1-1-set-up-project-from-approved-starter-template: review
   1-2-register-account-with-age-gate: backlog
   1-3-login-and-logout-securely: backlog
   1-4-sync-supabase-identity-to-local-user-record: backlog

@@ -1,6 +1,6 @@
 # Story 1.1: Set Up Project from Approved Starter Template
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -17,26 +17,26 @@ so that implementation starts on a consistent architecture baseline.
 
 ## Tasks / Subtasks
 
-- [ ] Create monorepo baseline and workspace wiring (AC: 1)
-  - [ ] Confirm root workspace config (`pnpm-workspace.yaml` or npm workspaces) and root scripts for `dev`, `build`, `test`, `lint`.
-  - [ ] Add root TypeScript baseline config and shared lint/prettier config placeholders.
-- [ ] Bootstrap frontend SPA (`apps/web`) from approved Vite React TypeScript starter (AC: 1)
-  - [ ] Ensure app boots locally and build succeeds.
-  - [ ] Keep desktop-first shell minimal and responsive baseline compatible.
-- [ ] Bootstrap backend API (`apps/api`) from approved NestJS starter (AC: 1)
-  - [ ] Use local CLI invocation (`npx @nestjs/cli@latest`) and strict TypeScript.
-  - [ ] Verify API starts and health endpoint (or equivalent minimal bootstrap) works locally.
-- [ ] Scaffold worker and shared-contracts package skeletons (AC: 1)
-  - [ ] Create `apps/worker` entrypoint and minimal runtime script.
-  - [ ] Create `packages/shared-contracts` with initial package manifest and placeholder exports.
-- [ ] Add baseline CI workflow checks (AC: 1, 2)
-  - [ ] Run install + typecheck + lint + build for web/api/worker in CI.
-  - [ ] Add artifact/log output to debug bootstrap failures quickly.
-- [ ] Implement initial page-load performance smoke check (AC: 2)
-  - [ ] Add a repeatable check command for web shell load target `< 2s` in desktop baseline environment.
-  - [ ] Wire check into CI as non-optional gate for this story completion.
-- [ ] Documentation and developer onboarding (AC: 1)
-  - [ ] Update `README.md` with local setup, commands, and expected project layout.
+- [x] Create monorepo baseline and workspace wiring (AC: 1)
+  - [x] Confirm root workspace config (`pnpm-workspace.yaml` or npm workspaces) and root scripts for `dev`, `build`, `test`, `lint`.
+  - [x] Add root TypeScript baseline config and shared lint/prettier config placeholders.
+- [x] Bootstrap frontend SPA (`apps/web`) from approved Vite React TypeScript starter (AC: 1)
+  - [x] Ensure app boots locally and build succeeds.
+  - [x] Keep desktop-first shell minimal and responsive baseline compatible.
+- [x] Bootstrap backend API (`apps/api`) from approved NestJS starter (AC: 1)
+  - [x] Use local CLI invocation (`npx @nestjs/cli@latest`) and strict TypeScript.
+  - [x] Verify API starts and health endpoint (or equivalent minimal bootstrap) works locally.
+- [x] Scaffold worker and shared-contracts package skeletons (AC: 1)
+  - [x] Create `apps/worker` entrypoint and minimal runtime script.
+  - [x] Create `packages/shared-contracts` with initial package manifest and placeholder exports.
+- [x] Add baseline CI workflow checks (AC: 1, 2)
+  - [x] Run install + typecheck + lint + build for web/api/worker in CI.
+  - [x] Add artifact/log output to debug bootstrap failures quickly.
+- [x] Implement initial page-load performance smoke check (AC: 2)
+  - [x] Add a repeatable check command for web shell load target `< 2s` in desktop baseline environment.
+  - [x] Wire check into CI as non-optional gate for this story completion.
+- [x] Documentation and developer onboarding (AC: 1)
+  - [x] Update `README.md` with local setup, commands, and expected project layout.
 
 ## Dev Notes
 
@@ -74,13 +74,54 @@ GPT-5 Codex
 
 ### Debug Log References
 
-- Pending implementation.
+- `npm install`
+- `npm run ci` (lint, typecheck, test, build, perf budget)
 
 ### Completion Notes List
 
-- Story prepared with architecture-aligned bootstrap scope.
-- Ready for `dev-story` execution.
+- Monorepo baseline created with npm workspaces and Node 20+ tooling.
+- Frontend starter generated with Vite React TypeScript (`apps/web`) and desktop-first shell scaffolded.
+- Backend starter generated with NestJS strict TypeScript (`apps/api`) and `/health` endpoint exposed.
+- Worker and shared contracts skeletons added (`apps/worker`, `packages/shared-contracts`).
+- CI workflow added with logs artifact upload and full baseline checks.
+- Performance smoke gate added as repeatable bundle-budget estimate check targeting `< 2s`.
+- Root README and baseline config files added for onboarding.
 
 ### File List
 
 - `/Users/romain/dev/ChessTrainer/_bmad-output/implementation-artifacts/1-1-set-up-project-from-approved-starter-template.md`
+- `/Users/romain/dev/ChessTrainer/package.json`
+- `/Users/romain/dev/ChessTrainer/package-lock.json`
+- `/Users/romain/dev/ChessTrainer/tsconfig.base.json`
+- `/Users/romain/dev/ChessTrainer/.editorconfig`
+- `/Users/romain/dev/ChessTrainer/.eslintrc.cjs`
+- `/Users/romain/dev/ChessTrainer/.prettierrc.json`
+- `/Users/romain/dev/ChessTrainer/.env.example`
+- `/Users/romain/dev/ChessTrainer/.gitignore`
+- `/Users/romain/dev/ChessTrainer/README.md`
+- `/Users/romain/dev/ChessTrainer/scripts/perf-web-shell-check.mjs`
+- `/Users/romain/dev/ChessTrainer/.github/workflows/ci.yml`
+- `/Users/romain/dev/ChessTrainer/apps/web/package.json`
+- `/Users/romain/dev/ChessTrainer/apps/web/src/App.tsx`
+- `/Users/romain/dev/ChessTrainer/apps/web/src/App.css`
+- `/Users/romain/dev/ChessTrainer/apps/web/src/index.css`
+- `/Users/romain/dev/ChessTrainer/apps/web/src/components/Board/Board.tsx`
+- `/Users/romain/dev/ChessTrainer/apps/web/src/components/Puzzle/Puzzle.tsx`
+- `/Users/romain/dev/ChessTrainer/apps/web/src/components/ExplanationPanel/ExplanationPanel.tsx`
+- `/Users/romain/dev/ChessTrainer/apps/web/src/components/ProgressSummary/ProgressSummary.tsx`
+- `/Users/romain/dev/ChessTrainer/apps/api/package.json`
+- `/Users/romain/dev/ChessTrainer/apps/api/tsconfig.json`
+- `/Users/romain/dev/ChessTrainer/apps/api/src/main.ts`
+- `/Users/romain/dev/ChessTrainer/apps/api/src/app.controller.ts`
+- `/Users/romain/dev/ChessTrainer/apps/api/src/app.controller.spec.ts`
+- `/Users/romain/dev/ChessTrainer/apps/api/src/app.service.ts`
+- `/Users/romain/dev/ChessTrainer/apps/worker/package.json`
+- `/Users/romain/dev/ChessTrainer/apps/worker/tsconfig.json`
+- `/Users/romain/dev/ChessTrainer/apps/worker/src/main.ts`
+- `/Users/romain/dev/ChessTrainer/packages/shared-contracts/package.json`
+- `/Users/romain/dev/ChessTrainer/packages/shared-contracts/tsconfig.json`
+- `/Users/romain/dev/ChessTrainer/packages/shared-contracts/src/index.ts`
+- `/Users/romain/dev/ChessTrainer/packages/shared-contracts/src/api/health.ts`
+- `/Users/romain/dev/ChessTrainer/packages/shared-contracts/src/events/analysis-requested.ts`
+- `/Users/romain/dev/ChessTrainer/packages/shared-contracts/src/schemas/index.ts`
+- `/Users/romain/dev/ChessTrainer/packages/shared-contracts/src/types/index.ts`

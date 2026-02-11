@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: |
+          set -o pipefail
+          mkdir -p .ci-logs
+          npm ci 2>&1 | tee .ci-logs/install.log
+
+      - name: Lint
+        run: |
+          set -o pipefail
+          npm run lint 2>&1 | tee .ci-logs/lint.log
+
+      - name: Typecheck
+        run: |
+          set -o pipefail
+          npm run typecheck 2>&1 | tee .ci-logs/typecheck.log
+
+      - name: Test
+        run: |
+          set -o pipefail
+          npm run test 2>&1 | tee .ci-logs/test.log
+
+      - name: Build
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee .ci-logs/build.log
+
+      - name: Performance Smoke Check
+        run: |
+          set -o pipefail
+          npm run perf:web 2>&1 | tee .ci-logs/perf-web.log
+
+      - name: Upload CI Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs
+          path: .ci-logs
