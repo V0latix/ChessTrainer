@@ -236,6 +236,36 @@ describe('API snake_case contract', () => {
           created_at: '2026-02-11T00:00:00.000Z',
         },
       }),
+      getPuzzleSession: jest.fn().mockResolvedValue({
+        session_id: 'user-1:mistake-1',
+        generated_at: '2026-02-11T00:00:00.000Z',
+        total_puzzles: 1,
+        puzzles: [
+          {
+            puzzle_id: 'mistake-1',
+            source: 'critical_mistake',
+            fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
+            side_to_move: 'black',
+            objective:
+              'Trouve le meilleur coup pour les noirs dans cette position.',
+            context: {
+              game_id: 'game-1',
+              game_url: 'https://www.chess.com/game/live/123',
+              chess_com_username: 'leo',
+              period: '2026-02',
+              time_class: 'rapid',
+              phase: 'endgame',
+              severity: 'blunder',
+              category: 'endgame_blunder',
+              played_move_uci: 'h1h2',
+              best_move_uci: 'h1g1',
+              eval_drop_cp: 540,
+              ply_index: 60,
+              created_at: '2026-02-11T00:00:00.000Z',
+            },
+          },
+        ],
+      }),
       evaluateAttempt: jest.fn().mockResolvedValue({
         puzzle_id: 'mistake-1',
         attempted_move_uci: 'h1h2',
@@ -256,6 +286,18 @@ describe('API snake_case contract', () => {
     });
 
     expectSnakeCaseKeys(puzzleResult);
+
+    const sessionResult = await controller.getPuzzleSession(
+      {
+        local_user_id: 'user-1',
+        supabase_sub: 'sub-1',
+        email: 'leo@example.com',
+        role: 'user',
+      },
+      '5',
+    );
+
+    expectSnakeCaseKeys(sessionResult);
 
     const attemptResult = await controller.evaluatePuzzleAttempt(
       {

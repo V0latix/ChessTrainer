@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Board } from '../../components/Board/Board';
+import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
 import { Puzzle } from '../../components/Puzzle/Puzzle';
 import {
   evaluatePuzzleAttempt,
-  getNextPuzzle,
+  getPuzzleSession,
   type EvaluatePuzzleAttemptResponse,
   type NextPuzzleResponse,
 } from '../../lib/puzzles';
@@ -14,12 +15,24 @@ export function PuzzlePage() {
   const { session } = useAuth();
   const [isLoading, setIsLoading] = useState(Boolean(session?.access_token));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [puzzle, setPuzzle] = useState<NextPuzzleResponse | null>(null);
+  const [sessionPuzzles, setSessionPuzzles] = useState<NextPuzzleResponse[]>([]);
+  const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0);
   const [lastMoveUci, setLastMoveUci] = useState<string | null>(null);
   const [isSubmittingAttempt, setIsSubmittingAttempt] = useState(false);
   const [attemptResult, setAttemptResult] =
     useState<EvaluatePuzzleAttemptResponse | null>(null);
   const [boardResetVersion, setBoardResetVersion] = useState(0);
+  const [solvedPuzzleIds, setSolvedPuzzleIds] = useState<string[]>([]);
+  const [skippedPuzzleIds, setSkippedPuzzleIds] = useState<string[]>([]);
+
+  const currentPuzzle = sessionPuzzles[currentPuzzleIndex] ?? null;
+  const isSessionComplete =
+    sessionPuzzles.length > 0 && currentPuzzleIndex >= sessionPuzzles.length;
+  const totalPuzzles = sessionPuzzles.length;
+  const completedPuzzles = Math.min(currentPuzzleIndex, totalPuzzles);
+  const currentPositionLabel = isSessionComplete
+    ? `${totalPuzzles}/${totalPuzzles}`
+    : `${Math.min(currentPuzzleIndex + 1, totalPuzzles)}/${totalPuzzles}`;
 
   useEffect(() => {
     if (!session?.access_token) {
@@ -30,24 +43,33 @@ export function PuzzlePage() {
 
     void (async () => {
       try {
-        const result = await getNextPuzzle({ accessToken: session.access_token });
+        const result = await getPuzzleSession({
+          accessToken: session.access_token,
+          limit: 10,
+        });
+
         if (isCancelled) {
           return;
         }
 
-        setPuzzle(result);
+        setSessionPuzzles(result.puzzles);
+        setCurrentPuzzleIndex(0);
         setLastMoveUci(null);
         setAttemptResult(null);
         setBoardResetVersion(0);
+        setSolvedPuzzleIds([]);
+        setSkippedPuzzleIds([]);
         setErrorMessage(null);
       } catch (error) {
         if (isCancelled) {
           return;
         }
 
-        setPuzzle(null);
+        setSessionPuzzles([]);
         setErrorMessage(
-          error instanceof Error ? error.message : 'Impossible de charger le puzzle.',
+          error instanceof Error
+            ? error.message
+            : 'Impossible de charger la session de puzzle.',
         );
       } finally {
         if (!isCancelled) {
@@ -62,7 +84,12 @@ export function PuzzlePage() {
   }, [session?.access_token]);
 
   async function handleMovePlayed(uciMove: string) {
-    if (!session?.access_token || !puzzle || isSubmittingAttempt || attemptResult) {
+    if (
+      !session?.access_token ||
+      !currentPuzzle ||
+      isSubmittingAttempt ||
+      attemptResult
+    ) {
       return;
     }
 
@@ -73,10 +100,18 @@ export function PuzzlePage() {
     try {
       const result = await evaluatePuzzleAttempt({
         accessToken: session.access_token,
-        puzzleId: puzzle.puzzle_id,
+        puzzleId: currentPuzzle.puzzle_id,
         attemptedMoveUci: uciMove,
       });
       setAttemptResult(result);
+
+      if (result.is_correct) {
+        setSolvedPuzzleIds((previous) =>
+          previous.includes(result.puzzle_id)
+            ? previous
+            : [...previous, result.puzzle_id],
+        );
+      }
     } catch (error) {
       setAttemptResult(null);
       setErrorMessage(
@@ -89,6 +124,14 @@ export function PuzzlePage() {
     }
   }
 
+  function advanceToNextPuzzle() {
+    setAttemptResult(null);
+    setLastMoveUci(null);
+    setErrorMessage(null);
+    setBoardResetVersion(0);
+    setCurrentPuzzleIndex((previous) => previous + 1);
+  }
+
   function handleRetry() {
     setAttemptResult(null);
     setLastMoveUci(null);
@@ -96,11 +139,29 @@ export function PuzzlePage() {
     setBoardResetVersion((previous) => previous + 1);
   }
 
+  function handleSkipPuzzle() {
+    if (!currentPuzzle) {
+      return;
+    }
+
+    setSkippedPuzzleIds((previous) =>
+      previous.includes(currentPuzzle.puzzle_id)
+        ? previous
+        : [...previous, currentPuzzle.puzzle_id],
+    );
+    advanceToNextPuzzle();
+  }
+
+  const canContinueAfterSolve = useMemo(
+    () => Boolean(attemptResult?.is_correct),
+    [attemptResult],
+  );
+
   return (
     <main className="app-shell">
       <header className="hero">
-        <h1>Puzzle de tes erreurs</h1>
-        <p>Rejoue une position critique issue de tes parties importées.</p>
+        <h1>Session de puzzles</h1>
+        <p>Rejoue une séquence de positions critiques issues de tes parties.</p>
         <p>
           <Link to="/onboarding">Retour à l’onboarding</Link>
         </p>
@@ -112,10 +173,20 @@ export function PuzzlePage() {
         </p>
       ) : null}
 
-      {isLoading ? <p className="auth-message">Chargement du puzzle...</p> : null}
+      {isLoading ? <p className="auth-message">Chargement de la session...</p> : null}
       {errorMessage ? <p className="auth-message auth-message-error">{errorMessage}</p> : null}
 
-      {!isLoading && !errorMessage && !puzzle ? (
+      {!isLoading && totalPuzzles > 0 ? (
+        <ProgressSummary
+          totalPuzzles={totalPuzzles}
+          completedPuzzles={completedPuzzles}
+          solvedPuzzles={solvedPuzzleIds.length}
+          skippedPuzzles={skippedPuzzleIds.length}
+          currentPositionLabel={currentPositionLabel}
+        />
+      ) : null}
+
+      {!isLoading && !errorMessage && totalPuzzles === 0 ? (
         <section className="panel">
           <h2>Aucun puzzle disponible</h2>
           <p>
@@ -125,11 +196,22 @@ export function PuzzlePage() {
         </section>
       ) : null}
 
-      {puzzle ? (
+      {isSessionComplete ? (
+        <section className="panel">
+          <h2>Session terminée</h2>
+          <p>Tu as parcouru tous les puzzles disponibles de cette session.</p>
+          <p>
+            Résolus: <strong>{solvedPuzzleIds.length}</strong> • Passés:{' '}
+            <strong>{skippedPuzzleIds.length}</strong>
+          </p>
+        </section>
+      ) : null}
+
+      {currentPuzzle ? (
         <div className="grid puzzle-grid">
           <Board
-            key={`${puzzle.puzzle_id}-${boardResetVersion}`}
-            initialFen={puzzle.fen}
+            key={`${currentPuzzle.puzzle_id}-${boardResetVersion}`}
+            initialFen={currentPuzzle.fen}
             title="Board"
             onMovePlayed={(uciMove) => {
               void handleMovePlayed(uciMove);
@@ -137,21 +219,23 @@ export function PuzzlePage() {
             isDisabled={isSubmittingAttempt || Boolean(attemptResult)}
           />
           <Puzzle
-            objective={puzzle.objective}
-            source={puzzle.source}
-            context={puzzle.context}
+            objective={currentPuzzle.objective}
+            source={currentPuzzle.source}
+            context={currentPuzzle.context}
           />
           <section className="panel">
             <h2>Contexte du coup</h2>
             <p>
-              Pseudo Chess.com: <strong>{puzzle.context.chess_com_username}</strong>
+              Pseudo Chess.com:{' '}
+              <strong>{currentPuzzle.context.chess_com_username}</strong>
             </p>
             <p>
-              Période: <strong>{puzzle.context.period}</strong> • Format:{' '}
-              <strong>{puzzle.context.time_class ?? 'unknown'}</strong>
+              Période: <strong>{currentPuzzle.context.period}</strong> • Format:{' '}
+              <strong>{currentPuzzle.context.time_class ?? 'unknown'}</strong>
             </p>
             <p>
-              Position critique au demi-coup <strong>{puzzle.context.ply_index}</strong>.
+              Position critique au demi-coup{' '}
+              <strong>{currentPuzzle.context.ply_index}</strong>.
             </p>
             {lastMoveUci ? (
               <p>
@@ -185,6 +269,25 @@ export function PuzzlePage() {
                 ) : null}
               </div>
             ) : null}
+
+            <div className="puzzle-actions">
+              <button
+                className="auth-submit import-submit-secondary"
+                type="button"
+                onClick={handleSkipPuzzle}
+                disabled={isSubmittingAttempt}
+              >
+                Passer ce puzzle
+              </button>
+              <button
+                className="auth-submit"
+                type="button"
+                onClick={advanceToNextPuzzle}
+                disabled={!canContinueAfterSolve}
+              >
+                Continuer au puzzle suivant
+              </button>
+            </div>
           </section>
         </div>
       ) : null}

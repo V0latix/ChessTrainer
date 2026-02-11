@@ -175,6 +175,13 @@
   background: #2a1a14;
 }
 
+.puzzle-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .auth-shell {
   min-height: 100vh;
   display: flex;

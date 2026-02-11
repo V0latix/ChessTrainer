@@ -23,6 +23,13 @@ export type NextPuzzleResponse = {
   };
 };
 
+export type PuzzleSessionResponse = {
+  session_id: string;
+  generated_at: string;
+  total_puzzles: number;
+  puzzles: NextPuzzleResponse[];
+};
+
 export type EvaluatePuzzleAttemptResponse = {
   puzzle_id: string;
   attempted_move_uci: string;
@@ -86,5 +93,37 @@ export async function evaluatePuzzleAttempt(params: {
   }
 
   const payload = (await response.json()) as { data: EvaluatePuzzleAttemptResponse };
+  return payload.data;
+}
+
+export async function getPuzzleSession(params: {
+  accessToken: string;
+  limit?: number;
+}): Promise<PuzzleSessionResponse> {
+  if (!env.apiBaseUrl) {
+    throw new Error('VITE_API_BASE_URL is missing.');
+  }
+
+  const query = new URLSearchParams();
+  if (typeof params.limit === 'number') {
+    query.set('limit', String(params.limit));
+  }
+
+  const response = await fetch(
+    `${env.apiBaseUrl}/puzzles/session${query.size > 0 ? `?${query.toString()}` : ''}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${params.accessToken}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(`Puzzle session fetch failed (${response.status}): ${responseText}`);
+  }
+
+  const payload = (await response.json()) as { data: PuzzleSessionResponse };
   return payload.data;
 }

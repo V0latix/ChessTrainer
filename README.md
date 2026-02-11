@@ -104,6 +104,11 @@ npm run dev
   - Server evaluates move vs stored `best_move_uci` and returns explicit feedback payload (`is_correct`, `status`, `feedback_*`, `retry_available`).
   - Puzzle page evaluates the played move immediately and shows success/failure feedback.
   - On failure, user can retry the same position with a one-click board reset.
+- Puzzle session sequencing (Story 4.3):
+  - API endpoint: `GET /puzzles/session?limit=<n>` to fetch a sequence of mistake-based puzzles.
+  - Puzzle page now runs a session flow (up to 10 puzzles), with explicit progress at the top.
+  - Users can continue after solving a puzzle or skip the current puzzle.
+  - Session progress updates as users advance (`completed / total`, solved count, skipped count).
 
 ## Useful Commands
 

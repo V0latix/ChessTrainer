@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -21,6 +22,27 @@ export class PuzzlesController {
   async getNextPuzzle(@CurrentUser() user: AuthenticatedUser) {
     const result = await this.puzzlesService.getNextPuzzle({
       user_id: user.local_user_id,
+    });
+
+    return {
+      data: result,
+    };
+  }
+
+  @UseGuards(SupabaseAuthGuard)
+  @Get('session')
+  async getPuzzleSession(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = Number(limit);
+    const resolvedLimit = Number.isFinite(parsedLimit)
+      ? Math.min(25, Math.max(1, parsedLimit))
+      : 5;
+
+    const result = await this.puzzlesService.getPuzzleSession({
+      user_id: user.local_user_id,
+      limit: resolvedLimit,
     });
 
     return {

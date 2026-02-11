@@ -1,31 +1,33 @@
-import { PuzzlesService } from './puzzles.service';
 import { NotFoundException } from '@nestjs/common';
+import { PuzzlesService } from './puzzles.service';
 
 describe('PuzzlesService', () => {
+  const baseMistake = {
+    id: 'mistake-1',
+    gameId: 'game-1',
+    fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
+    phase: 'endgame',
+    severity: 'blunder',
+    category: 'endgame_blunder',
+    playedMoveUci: 'h1h2',
+    bestMoveUci: 'h1g1',
+    evalDropCp: 540,
+    plyIndex: 60,
+    createdAt: new Date('2026-02-11T00:00:00.000Z'),
+    game: {
+      gameUrl: 'https://www.chess.com/game/live/123',
+      chessComUsername: 'leo',
+      period: '2026-02',
+      timeClass: 'rapid',
+    },
+  };
+
   it('returns a puzzle projection from the most recent critical mistake', async () => {
-    const findFirst = jest.fn().mockResolvedValue({
-      id: 'mistake-1',
-      gameId: 'game-1',
-      fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
-      phase: 'endgame',
-      severity: 'blunder',
-      category: 'endgame_blunder',
-      playedMoveUci: 'h1h2',
-      bestMoveUci: 'h1g1',
-      evalDropCp: 540,
-      plyIndex: 60,
-      createdAt: new Date('2026-02-11T00:00:00.000Z'),
-      game: {
-        gameUrl: 'https://www.chess.com/game/live/123',
-        chessComUsername: 'leo',
-        period: '2026-02',
-        timeClass: 'rapid',
-      },
-    });
+    const findMany = jest.fn().mockResolvedValue([baseMistake]);
 
     const service = new PuzzlesService({
       criticalMistake: {
-        findFirst,
+        findMany,
       },
     } as any);
 
@@ -56,13 +58,14 @@ describe('PuzzlesService', () => {
       },
     });
 
-    expect(findFirst).toHaveBeenCalledWith({
+    expect(findMany).toHaveBeenCalledWith({
       where: {
         userId: 'local-user-1',
       },
       orderBy: {
         createdAt: 'desc',
       },
+      take: 1,
       select: {
         id: true,
         gameId: true,
@@ -87,10 +90,46 @@ describe('PuzzlesService', () => {
     });
   });
 
+  it('returns a session of puzzles ordered by most recent mistakes', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      baseMistake,
+      {
+        ...baseMistake,
+        id: 'mistake-2',
+        bestMoveUci: 'h1h3',
+      },
+    ]);
+
+    const service = new PuzzlesService({
+      criticalMistake: {
+        findMany,
+      },
+    } as any);
+
+    await expect(
+      service.getPuzzleSession({
+        user_id: 'local-user-1',
+        limit: 5,
+      }),
+    ).resolves.toEqual({
+      session_id: 'local-user-1:mistake-1',
+      generated_at: expect.any(String),
+      total_puzzles: 2,
+      puzzles: [
+        expect.objectContaining({
+          puzzle_id: 'mistake-1',
+        }),
+        expect.objectContaining({
+          puzzle_id: 'mistake-2',
+        }),
+      ],
+    });
+  });
+
   it('returns null when no critical mistake exists for the user', async () => {
     const service = new PuzzlesService({
       criticalMistake: {
-        findFirst: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
       },
     } as any);
 

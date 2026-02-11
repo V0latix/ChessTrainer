@@ -25,6 +25,13 @@ export type NextPuzzleResult = {
   };
 };
 
+export type PuzzleSessionResult = {
+  session_id: string;
+  generated_at: string;
+  total_puzzles: number;
+  puzzles: NextPuzzleResult[];
+};
+
 export type EvaluatePuzzleAttemptResult = {
   puzzle_id: string;
   attempted_move_uci: string;
@@ -43,13 +50,26 @@ export class PuzzlesService {
   async getNextPuzzle(params: {
     user_id: string;
   }): Promise<NextPuzzleResult | null> {
-    const latestMistake = await this.prisma.criticalMistake.findFirst({
+    const session = await this.getPuzzleSession({
+      user_id: params.user_id,
+      limit: 1,
+    });
+
+    return session.puzzles[0] ?? null;
+  }
+
+  async getPuzzleSession(params: {
+    user_id: string;
+    limit: number;
+  }): Promise<PuzzleSessionResult> {
+    const mistakes = await this.prisma.criticalMistake.findMany({
       where: {
         userId: params.user_id,
       },
       orderBy: {
         createdAt: 'desc',
       },
+      take: params.limit,
       select: {
         id: true,
         gameId: true,
@@ -73,34 +93,11 @@ export class PuzzlesService {
       },
     });
 
-    if (!latestMistake) {
-      return null;
-    }
-
-    const sideToMove = this.resolveSideToMove(latestMistake.fen);
-    const sideLabel = sideToMove === 'white' ? 'blancs' : 'noirs';
-
     return {
-      puzzle_id: latestMistake.id,
-      source: 'critical_mistake',
-      fen: latestMistake.fen,
-      side_to_move: sideToMove,
-      objective: `Trouve le meilleur coup pour les ${sideLabel} dans cette position.`,
-      context: {
-        game_id: latestMistake.gameId,
-        game_url: latestMistake.game.gameUrl,
-        chess_com_username: latestMistake.game.chessComUsername,
-        period: latestMistake.game.period,
-        time_class: latestMistake.game.timeClass,
-        phase: latestMistake.phase,
-        severity: latestMistake.severity,
-        category: latestMistake.category,
-        played_move_uci: latestMistake.playedMoveUci,
-        best_move_uci: latestMistake.bestMoveUci,
-        eval_drop_cp: latestMistake.evalDropCp,
-        ply_index: latestMistake.plyIndex,
-        created_at: latestMistake.createdAt.toISOString(),
-      },
+      session_id: `${params.user_id}:${mistakes[0]?.id ?? 'empty'}`,
+      generated_at: new Date().toISOString(),
+      total_puzzles: mistakes.length,
+      puzzles: mistakes.map((mistake) => this.mapMistakeToPuzzle(mistake)),
     };
   }
 
@@ -146,5 +143,51 @@ export class PuzzlesService {
     const parts = fen.split(' ');
     const activeColor = parts[1];
     return activeColor === 'b' ? 'black' : 'white';
+  }
+
+  private mapMistakeToPuzzle(mistake: {
+    id: string;
+    gameId: string;
+    fen: string;
+    phase: string;
+    severity: string;
+    category: string;
+    playedMoveUci: string;
+    bestMoveUci: string;
+    evalDropCp: number;
+    plyIndex: number;
+    createdAt: Date;
+    game: {
+      gameUrl: string;
+      chessComUsername: string;
+      period: string;
+      timeClass: string | null;
+    };
+  }): NextPuzzleResult {
+    const sideToMove = this.resolveSideToMove(mistake.fen);
+    const sideLabel = sideToMove === 'white' ? 'blancs' : 'noirs';
+
+    return {
+      puzzle_id: mistake.id,
+      source: 'critical_mistake',
+      fen: mistake.fen,
+      side_to_move: sideToMove,
+      objective: `Trouve le meilleur coup pour les ${sideLabel} dans cette position.`,
+      context: {
+        game_id: mistake.gameId,
+        game_url: mistake.game.gameUrl,
+        chess_com_username: mistake.game.chessComUsername,
+        period: mistake.game.period,
+        time_class: mistake.game.timeClass,
+        phase: mistake.phase,
+        severity: mistake.severity,
+        category: mistake.category,
+        played_move_uci: mistake.playedMoveUci,
+        best_move_uci: mistake.bestMoveUci,
+        eval_drop_cp: mistake.evalDropCp,
+        ply_index: mistake.plyIndex,
+        created_at: mistake.createdAt.toISOString(),
+      },
+    };
   }
 }

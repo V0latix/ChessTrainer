@@ -57,7 +57,7 @@ development_status:
   epic-4: backlog
   4-1-open-mistake-position-as-playable-puzzle: review
   4-2-evaluate-attempt-and-enable-retry: review
-  4-3-sequence-puzzles-in-session-flow: backlog
+  4-3-sequence-puzzles-in-session-flow: review
   4-4-explain-wrong-move-and-best-move: backlog
   4-5-accessibility-hardening-for-puzzle-and-explanation-flow: backlog
   epic-4-retrospective: optional

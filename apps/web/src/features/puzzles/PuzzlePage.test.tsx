@@ -4,16 +4,16 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PuzzlePage } from './PuzzlePage';
 
-const { getNextPuzzleMock, evaluatePuzzleAttemptMock } = vi.hoisted(() => {
+const { getPuzzleSessionMock, evaluatePuzzleAttemptMock } = vi.hoisted(() => {
   return {
-    getNextPuzzleMock: vi.fn(),
+    getPuzzleSessionMock: vi.fn(),
     evaluatePuzzleAttemptMock: vi.fn(),
   };
 });
 
 vi.mock('../../lib/puzzles', () => {
   return {
-    getNextPuzzle: getNextPuzzleMock,
+    getPuzzleSession: getPuzzleSessionMock,
     evaluatePuzzleAttempt: evaluatePuzzleAttemptMock,
   };
 });
@@ -35,32 +35,39 @@ vi.mock('../auth/auth-context', () => {
 
 describe('PuzzlePage', () => {
   beforeEach(() => {
-    getNextPuzzleMock.mockReset();
+    getPuzzleSessionMock.mockReset();
     evaluatePuzzleAttemptMock.mockReset();
   });
 
-  it('loads next puzzle and renders board + objective context', async () => {
-    getNextPuzzleMock.mockResolvedValue({
-      puzzle_id: 'mistake-1',
-      source: 'critical_mistake',
-      fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
-      side_to_move: 'black',
-      objective: 'Trouve le meilleur coup pour les noirs dans cette position.',
-      context: {
-        game_id: 'game-1',
-        game_url: 'https://www.chess.com/game/live/123',
-        chess_com_username: 'leo',
-        period: '2026-02',
-        time_class: 'rapid',
-        phase: 'endgame',
-        severity: 'blunder',
-        category: 'endgame_blunder',
-        played_move_uci: 'h1h2',
-        best_move_uci: 'h1g1',
-        eval_drop_cp: 540,
-        ply_index: 60,
-        created_at: '2026-02-11T00:00:00.000Z',
-      },
+  it('loads puzzle session and renders first puzzle', async () => {
+    getPuzzleSessionMock.mockResolvedValue({
+      session_id: 'session-1',
+      generated_at: '2026-02-11T00:00:00.000Z',
+      total_puzzles: 1,
+      puzzles: [
+        {
+          puzzle_id: 'mistake-1',
+          source: 'critical_mistake',
+          fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
+          side_to_move: 'black',
+          objective: 'Trouve le meilleur coup pour les noirs dans cette position.',
+          context: {
+            game_id: 'game-1',
+            game_url: 'https://www.chess.com/game/live/123',
+            chess_com_username: 'leo',
+            period: '2026-02',
+            time_class: 'rapid',
+            phase: 'endgame',
+            severity: 'blunder',
+            category: 'endgame_blunder',
+            played_move_uci: 'h1h2',
+            best_move_uci: 'h1g1',
+            eval_drop_cp: 540,
+            ply_index: 60,
+            created_at: '2026-02-11T00:00:00.000Z',
+          },
+        },
+      ],
     });
 
     render(
@@ -70,51 +77,85 @@ describe('PuzzlePage', () => {
     );
 
     await waitFor(() => {
-      expect(getNextPuzzleMock).toHaveBeenCalledWith({
+      expect(getPuzzleSessionMock).toHaveBeenCalledWith({
         accessToken: 'access-token-1',
+        limit: 10,
       });
     });
 
     expect(screen.getByText(/Trouve le meilleur coup/i)).toBeInTheDocument();
-    expect(screen.getByText(/Phase: endgame/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ton coup: h1h2/i)).toBeInTheDocument();
-    expect(screen.getByRole('grid', { name: /échiquier interactif/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('grid', { name: /échiquier interactif/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('session-completed')).toHaveTextContent(
+      'Progression: 0/1',
+    );
   });
 
-  it('shows incorrect feedback then allows retry on the same position', async () => {
+  it('moves to next puzzle when solved and continue is clicked', async () => {
     const user = userEvent.setup();
 
-    getNextPuzzleMock.mockResolvedValue({
-      puzzle_id: 'mistake-1',
-      source: 'critical_mistake',
-      fen: '8/8/8/8/8/8/7k/7K b - - 0 1',
-      side_to_move: 'black',
-      objective: 'Trouve le meilleur coup pour les noirs dans cette position.',
-      context: {
-        game_id: 'game-1',
-        game_url: 'https://www.chess.com/game/live/123',
-        chess_com_username: 'leo',
-        period: '2026-02',
-        time_class: 'rapid',
-        phase: 'endgame',
-        severity: 'blunder',
-        category: 'endgame_blunder',
-        played_move_uci: 'h2h1',
-        best_move_uci: 'h2g2',
-        eval_drop_cp: 540,
-        ply_index: 60,
-        created_at: '2026-02-11T00:00:00.000Z',
-      },
+    getPuzzleSessionMock.mockResolvedValue({
+      session_id: 'session-1',
+      generated_at: '2026-02-11T00:00:00.000Z',
+      total_puzzles: 2,
+      puzzles: [
+        {
+          puzzle_id: 'mistake-1',
+          source: 'critical_mistake',
+          fen: '7k/8/8/8/8/8/7p/K7 b - - 0 1',
+          side_to_move: 'black',
+          objective: 'Puzzle 1',
+          context: {
+            game_id: 'game-1',
+            game_url: 'https://www.chess.com/game/live/123',
+            chess_com_username: 'leo',
+            period: '2026-02',
+            time_class: 'rapid',
+            phase: 'endgame',
+            severity: 'blunder',
+            category: 'endgame_blunder',
+            played_move_uci: 'h2h1q',
+            best_move_uci: 'h2h1q',
+            eval_drop_cp: 540,
+            ply_index: 60,
+            created_at: '2026-02-11T00:00:00.000Z',
+          },
+        },
+        {
+          puzzle_id: 'mistake-2',
+          source: 'critical_mistake',
+          fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
+          side_to_move: 'black',
+          objective: 'Puzzle 2',
+          context: {
+            game_id: 'game-2',
+            game_url: 'https://www.chess.com/game/live/124',
+            chess_com_username: 'leo',
+            period: '2026-02',
+            time_class: 'blitz',
+            phase: 'endgame',
+            severity: 'mistake',
+            category: 'endgame_mistake',
+            played_move_uci: 'h1h2',
+            best_move_uci: 'h1g1',
+            eval_drop_cp: 220,
+            ply_index: 42,
+            created_at: '2026-02-11T00:10:00.000Z',
+          },
+        },
+      ],
     });
+
     evaluatePuzzleAttemptMock.mockResolvedValue({
       puzzle_id: 'mistake-1',
-      attempted_move_uci: 'h2h1',
-      best_move_uci: 'h2g2',
-      is_correct: false,
-      status: 'incorrect',
-      feedback_title: 'Presque',
-      feedback_message: 'Ce n’est pas le meilleur coup. Essaie encore: h2g2.',
-      retry_available: true,
+      attempted_move_uci: 'h2h1q',
+      best_move_uci: 'h2h1q',
+      is_correct: true,
+      status: 'correct',
+      feedback_title: 'Bien joué',
+      feedback_message: 'Excellent: c’est le meilleur coup dans cette position.',
+      retry_available: false,
     });
 
     render(
@@ -124,7 +165,7 @@ describe('PuzzlePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('grid', { name: /échiquier interactif/i })).toBeInTheDocument();
+      expect(screen.getByText('Puzzle 1')).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole('button', { name: /Case h2/i }));
@@ -134,19 +175,29 @@ describe('PuzzlePage', () => {
       expect(evaluatePuzzleAttemptMock).toHaveBeenCalledWith({
         accessToken: 'access-token-1',
         puzzleId: 'mistake-1',
-        attemptedMoveUci: 'h2h1',
+        attemptedMoveUci: 'h2h1q',
       });
     });
 
-    expect(screen.getByText('Presque')).toBeInTheDocument();
-    expect(screen.getByText(/Essaie encore/i)).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /Continuer au puzzle suivant/i }),
+    );
 
-    await user.click(screen.getByRole('button', { name: /Réessayer cette position/i }));
-    expect(screen.queryByText('Presque')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Puzzle 2')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('session-completed')).toHaveTextContent(
+      'Progression: 1/2',
+    );
   });
 
   it('shows empty-state when no puzzle is available', async () => {
-    getNextPuzzleMock.mockResolvedValue(null);
+    getPuzzleSessionMock.mockResolvedValue({
+      session_id: 'session-empty',
+      generated_at: '2026-02-11T00:00:00.000Z',
+      total_puzzles: 0,
+      puzzles: [],
+    });
 
     render(
       <MemoryRouter>
@@ -155,7 +206,7 @@ describe('PuzzlePage', () => {
     );
 
     await waitFor(() => {
-      expect(getNextPuzzleMock).toHaveBeenCalledTimes(1);
+      expect(getPuzzleSessionMock).toHaveBeenCalledTimes(1);
     });
 
     expect(screen.getByText(/Aucun puzzle disponible/i)).toBeInTheDocument();
