@@ -3,6 +3,7 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { OnboardingPage } from '../features/auth/OnboardingPage';
 import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { RegisterPage } from '../features/auth/RegisterPage';
+import { CoachContextPage } from '../features/coach/CoachContextPage';
 import { DataInventoryPage } from '../features/data-inventory/DataInventoryPage';
 import { PuzzlePage } from '../features/puzzles/PuzzlePage';
 import { ProgressPage } from '../features/progress/ProgressPage';
@@ -50,6 +51,14 @@ export function AppRouter() {
         element={
           <ProtectedRoute>
             <DataInventoryPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coach/context"
+        element={
+          <ProtectedRoute>
+            <CoachContextPage />
           </ProtectedRoute>
         }
       />

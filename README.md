@@ -162,6 +162,15 @@ npm run dev
   - Returns deletion summary with `deleted_counts` + `remaining_counts`.
   - Data inventory page now includes explicit selection + confirmation before deletion.
   - After deletion, inventory refreshes immediately and progress views reflect updated backend state on next load.
+- Coach student context access (Story 6.1):
+  - Prisma model `CoachStudentAccess` defines explicit authorized coach→student links.
+  - API endpoints:
+    - `GET /coach/students`
+    - `POST /coach/context/select`
+  - Coach-only access is enforced server-side (`role=coach` required).
+  - Unauthorized student context selection is blocked (`403`).
+  - New protected web route: `/coach/context` to list authorized students and activate one context.
+  - Selected context metadata is persisted client-side for next coach stories.
 
 ## Useful Commands
 

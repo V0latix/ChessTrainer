@@ -431,6 +431,9 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           <p className="hero-link-row">
             <Link to="/data/inventory">Voir l’inventaire des données</Link>
           </p>
+          <p className="hero-link-row">
+            <Link to="/coach/context">Espace coach (contexte élève)</Link>
+          </p>
         </div>
         <button
           className="logout-button"

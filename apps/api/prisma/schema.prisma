@@ -31,6 +31,8 @@ model User {
   criticalMistakes CriticalMistake[]
   mistakeSummaries UserMistakeSummary[]
   puzzleSessions  PuzzleSession[]
+  coachAccessLinks CoachStudentAccess[] @relation("CoachAccess")
+  studentAccessLinks CoachStudentAccess[] @relation("StudentAccess")
 
   @@map("users")
 }
@@ -162,6 +164,21 @@ model PuzzleSession {
 
   @@index([userId, createdAt])
   @@map("puzzle_sessions")
+}
+
+model CoachStudentAccess {
+  id        String   @id @default(cuid())
+  coachId   String   @map("coach_id")
+  studentId String   @map("student_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  coach   User @relation("CoachAccess", fields: [coachId], references: [id], onDelete: Cascade)
+  student User @relation("StudentAccess", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([coachId, studentId])
+  @@index([coachId, createdAt])
+  @@index([studentId, createdAt])
+  @@map("coach_student_accesses")
 }
 
 model AuditLog {

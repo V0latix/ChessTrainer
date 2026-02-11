@@ -3,6 +3,7 @@ import { AppController } from '../app.controller';
 import { AppService } from '../app.service';
 import { AnalysisJobsController } from '../modules/analysis-jobs/analysis-jobs.controller';
 import { AuthController } from '../modules/auth/auth.controller';
+import { CoachContextController } from '../modules/coach-context/coach-context.controller';
 import { DataInventoryController } from '../modules/data-inventory/data-inventory.controller';
 import { ImportsController } from '../modules/imports/imports.controller';
 import { PuzzlesController } from '../modules/puzzles/puzzles.controller';
@@ -478,5 +479,57 @@ describe('API snake_case contract', () => {
     );
 
     expectSnakeCaseKeys(deletedResult);
+  });
+
+  it('enforces snake_case keys for coach context payloads', async () => {
+    const controller = new CoachContextController({
+      listAuthorizedStudents: jest.fn().mockResolvedValue({
+        coach_user_id: 'coach-1',
+        students: [
+          {
+            student_user_id: 'student-1',
+            email: 'leo@example.com',
+            role: 'user',
+            chess_com_usernames: ['leoChess'],
+            last_game_import_at: '2026-02-11T10:00:00.000Z',
+            granted_at: '2026-02-10T10:00:00.000Z',
+          },
+        ],
+      }),
+      selectStudentContext: jest.fn().mockResolvedValue({
+        context_id: 'coach-1:student-1',
+        coach_user_id: 'coach-1',
+        student: {
+          student_user_id: 'student-1',
+          email: 'leo@example.com',
+          role: 'user',
+          chess_com_usernames: ['leoChess'],
+          last_game_import_at: '2026-02-11T10:00:00.000Z',
+          granted_at: '2026-02-10T10:00:00.000Z',
+        },
+        selected_at: '2026-02-11T11:00:00.000Z',
+      }),
+    } as any);
+
+    const studentsResult = await controller.listAuthorizedStudents({
+      local_user_id: 'coach-1',
+      supabase_sub: 'sub-coach-1',
+      email: 'coach@example.com',
+      role: 'coach',
+    });
+    expectSnakeCaseKeys(studentsResult);
+
+    const selectedResult = await controller.selectStudentContext(
+      {
+        local_user_id: 'coach-1',
+        supabase_sub: 'sub-coach-1',
+        email: 'coach@example.com',
+        role: 'coach',
+      },
+      {
+        student_user_id: 'student-1',
+      },
+    );
+    expectSnakeCaseKeys(selectedResult);
   });
 });
