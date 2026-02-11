@@ -18,8 +18,17 @@ Monorepo MVP for ChessTrainer (SPA web + API + worker + shared contracts).
 
 ```bash
 npm install
+cp .env.example .env
 npm run dev
 ```
+
+## Auth Setup (Story 1.2)
+
+- Configure Supabase keys in `.env`:
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
+- Open web app on `/register` to create account with age-gate checkbox (16+).
+- Successful signup with active session redirects to `/onboarding`.
 
 ## Useful Commands
 
