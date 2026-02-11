@@ -27,6 +27,7 @@ npm run dev
 - Configure Supabase keys in `.env`:
   - `SUPABASE_URL`
   - `SUPABASE_JWT_AUDIENCE`
+  - `SUPABASE_SERVICE_ROLE_KEY` (required for API-side account deletion)
   - `VITE_SUPABASE_URL`
   - `VITE_SUPABASE_ANON_KEY`
 - Configure API persistence + CORS:
@@ -37,6 +38,7 @@ npm run dev
 - Successful login/signup with active session redirects to `/onboarding`.
 - Logout button in onboarding invalidates the session and redirects to `/login`.
 - On first authenticated session, web calls `GET /auth/me` to upsert local `users` identity by Supabase `sub`.
+- Account deletion is available in onboarding after explicit confirmation and calls `POST /auth/delete-account`.
 
 ## Useful Commands
 

@@ -156,6 +156,40 @@
   cursor: wait;
 }
 
+.danger-zone {
+  margin-top: 28px;
+  border: 1px solid #522032;
+  border-radius: 14px;
+  padding: 16px;
+  background: linear-gradient(180deg, #1f1020 0%, #140a14 100%);
+}
+
+.danger-zone h2 {
+  margin: 0 0 8px;
+  color: #ff9eb5;
+}
+
+.danger-zone p {
+  margin: 0 0 12px;
+  color: #d2a4b0;
+}
+
+.delete-button {
+  margin-top: 10px;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-weight: 600;
+  color: #220511;
+  background: linear-gradient(180deg, #f06a87 0%, #dc5170 100%);
+  cursor: pointer;
+}
+
+.delete-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 .auth-message {
   margin-top: 12px;
 }
