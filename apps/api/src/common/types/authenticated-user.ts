@@ -9,7 +9,10 @@ export type AuthenticatedUser = {
 
 export type RequestWithAuthUser = Request & {
   authUser?: AuthenticatedUser;
+  traceId?: string;
   headers: {
     authorization?: string;
+    'x-forwarded-proto'?: string;
+    'x-trace-id'?: string;
   };
 };

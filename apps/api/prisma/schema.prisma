@@ -22,3 +22,17 @@ model User {
 
   @@map("users")
 }
+
+model AuditLog {
+  id               String   @id @default(cuid())
+  actorUserId      String?  @map("actor_user_id")
+  actorSupabaseSub String?  @map("actor_supabase_sub")
+  action           String
+  traceId          String   @map("trace_id")
+  metadata         Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([actorUserId, createdAt])
+  @@index([traceId])
+  @@map("audit_logs")
+}

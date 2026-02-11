@@ -39,6 +39,10 @@ npm run dev
 - Logout button in onboarding invalidates the session and redirects to `/login`.
 - On first authenticated session, web calls `GET /auth/me` to upsert local `users` identity by Supabase `sub`.
 - Account deletion is available in onboarding after explicit confirmation and calls `POST /auth/delete-account`.
+- Security baseline (Story 1.6):
+  - API enforces HTTPS-only in `production`.
+  - `x-trace-id` is attached to responses and reused in audit logs.
+  - `GET /auth/audit-logs` is available for authenticated audit-log review.
 
 ## Useful Commands
 
@@ -46,6 +50,7 @@ npm run dev
 - `npm run typecheck`
 - `npm run test`
 - `npm run build`
+- `npm run security:check`
 - `npm run perf:web`
 - `npm run ci`
 

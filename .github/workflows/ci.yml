@@ -46,6 +46,11 @@ jobs:
           set -o pipefail
           npm run build 2>&1 | tee .ci-logs/build.log
 
+      - name: Security Baseline Check
+        run: |
+          set -o pipefail
+          npm run security:check 2>&1 | tee .ci-logs/security.log
+
       - name: Performance Smoke Check
         run: |
           set -o pipefail
