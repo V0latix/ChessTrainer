@@ -15,6 +15,6 @@ import { UserIdentityService } from './user-identity.service';
     AccountDeletionService,
     AuditLogService,
   ],
-  exports: [UserIdentityService],
+  exports: [SupabaseAuthGuard, SupabaseJwtService, UserIdentityService],
 })
 export class AuthModule {}
