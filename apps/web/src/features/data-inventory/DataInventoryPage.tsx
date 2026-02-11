@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getDataInventory, type DataInventoryResponse } from '../../lib/data-inventory';
+import {
+  deleteStoredDatasets,
+  getDataInventory,
+  type DataInventoryResponse,
+  type DeleteDatasetsResponse,
+} from '../../lib/data-inventory';
 import { useAuth } from '../auth/auth-context';
 
 function formatDate(value: string | null) {
@@ -17,8 +22,18 @@ function formatDate(value: string | null) {
 export function DataInventoryPage() {
   const { session } = useAuth();
   const [isLoading, setIsLoading] = useState(Boolean(session?.access_token));
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inventory, setInventory] = useState<DataInventoryResponse | null>(null);
+  const [deletionResult, setDeletionResult] = useState<DeleteDatasetsResponse | null>(
+    null,
+  );
+  const [selectedDatasets, setSelectedDatasets] = useState({
+    games: false,
+    analyses: false,
+    puzzle_sessions: false,
+  });
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
 
   useEffect(() => {
     if (!session?.access_token) {
@@ -38,6 +53,7 @@ export function DataInventoryPage() {
         }
 
         setInventory(result);
+        setDeletionResult(null);
         setErrorMessage(null);
       } catch (error) {
         if (cancelled) {
@@ -61,6 +77,60 @@ export function DataInventoryPage() {
       cancelled = true;
     };
   }, [session?.access_token]);
+
+  async function handleDeleteDatasets() {
+    if (!session?.access_token || !inventory) {
+      return;
+    }
+
+    const datasetKeys = (
+      Object.entries(selectedDatasets) as Array<
+        [keyof typeof selectedDatasets, boolean]
+      >
+    )
+      .filter(([, selected]) => selected)
+      .map(([datasetKey]) => datasetKey);
+
+    if (datasetKeys.length === 0) {
+      setErrorMessage('Sélectionne au moins un dataset à supprimer.');
+      return;
+    }
+
+    if (!deleteConfirmed) {
+      setErrorMessage('Confirme la suppression avant de continuer.');
+      return;
+    }
+
+    setIsDeleting(true);
+    setErrorMessage(null);
+
+    try {
+      const deletion = await deleteStoredDatasets({
+        accessToken: session.access_token,
+        datasetKeys,
+      });
+
+      setDeletionResult(deletion);
+      const refreshed = await getDataInventory({
+        accessToken: session.access_token,
+      });
+      setInventory(refreshed);
+      setDeleteConfirmed(false);
+      setSelectedDatasets({
+        games: false,
+        analyses: false,
+        puzzle_sessions: false,
+      });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Impossible de supprimer les datasets sélectionnés.',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <main className="app-shell">
@@ -136,6 +206,88 @@ export function DataInventoryPage() {
               </strong>
             </p>
           </article>
+
+          <section className="danger-zone data-delete-zone">
+            <h2>Supprimer des datasets</h2>
+            <p>
+              Choisis les données à supprimer. Cette action met à jour
+              l’inventaire et les métriques de progression associées.
+            </p>
+            <label className="auth-checkbox">
+              <input
+                type="checkbox"
+                checked={selectedDatasets.games}
+                onChange={(event) =>
+                  setSelectedDatasets((previous) => ({
+                    ...previous,
+                    games: event.target.checked,
+                  }))
+                }
+                disabled={isDeleting}
+              />
+              <span>Supprimer les parties (et données d’analyse liées)</span>
+            </label>
+            <label className="auth-checkbox">
+              <input
+                type="checkbox"
+                checked={selectedDatasets.analyses}
+                onChange={(event) =>
+                  setSelectedDatasets((previous) => ({
+                    ...previous,
+                    analyses: event.target.checked,
+                  }))
+                }
+                disabled={isDeleting}
+              />
+              <span>Supprimer uniquement les analyses</span>
+            </label>
+            <label className="auth-checkbox">
+              <input
+                type="checkbox"
+                checked={selectedDatasets.puzzle_sessions}
+                onChange={(event) =>
+                  setSelectedDatasets((previous) => ({
+                    ...previous,
+                    puzzle_sessions: event.target.checked,
+                  }))
+                }
+                disabled={isDeleting}
+              />
+              <span>Supprimer les sessions puzzle stockées</span>
+            </label>
+            <label className="auth-checkbox">
+              <input
+                type="checkbox"
+                checked={deleteConfirmed}
+                onChange={(event) => setDeleteConfirmed(event.target.checked)}
+                disabled={isDeleting}
+              />
+              <span>Je confirme vouloir supprimer ces datasets.</span>
+            </label>
+            <button
+              className="delete-button"
+              type="button"
+              onClick={() => {
+                void handleDeleteDatasets();
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer les datasets sélectionnés'}
+            </button>
+
+            {deletionResult ? (
+              <div className="data-delete-summary" data-testid="data-delete-summary">
+                <p>
+                  Datasets supprimés: {deletionResult.deleted_datasets.join(', ')}
+                </p>
+                <p>
+                  Suppressions effectives: parties {deletionResult.deleted_counts.games_count}
+                  , analyses {deletionResult.deleted_counts.analyses_count}, erreurs{' '}
+                  {deletionResult.deleted_counts.critical_mistakes_count}.
+                </p>
+              </div>
+            ) : null}
+          </section>
         </section>
       ) : null}
     </main>

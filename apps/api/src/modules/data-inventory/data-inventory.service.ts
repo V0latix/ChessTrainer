@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export type DataInventoryResult = {
@@ -32,6 +33,28 @@ export type DataInventoryResult = {
       updated_at: string;
     } | null;
   };
+};
+
+export type DeletableDataset = 'games' | 'analyses' | 'puzzle_sessions';
+
+export type DataDeletionResult = {
+  deleted_datasets: DeletableDataset[];
+  deleted_counts: {
+    games_count: number;
+    analyses_count: number;
+    move_evaluations_count: number;
+    critical_mistakes_count: number;
+    puzzle_sessions_count: number;
+    user_mistake_summaries_count: number;
+  };
+  remaining_counts: {
+    games_count: number;
+    analyses_count: number;
+    move_evaluations_count: number;
+    critical_mistakes_count: number;
+    puzzle_sessions_count: number;
+  };
+  deleted_at: string;
 };
 
 @Injectable()
@@ -163,6 +186,133 @@ export class DataInventoryService {
             }
           : null,
       },
+    };
+  }
+
+  async deleteDatasets(params: {
+    user_id: string;
+    dataset_keys: DeletableDataset[];
+  }): Promise<DataDeletionResult> {
+    const datasetKeys = Array.from(new Set(params.dataset_keys));
+
+    return this.prisma.$transaction(async (tx) => {
+      const beforeCounts = await this.getCounts(tx, params.user_id);
+      const beforeSummaries = await tx.userMistakeSummary.count({
+        where: {
+          userId: params.user_id,
+        },
+      });
+
+      if (datasetKeys.includes('games')) {
+        await tx.game.deleteMany({
+          where: {
+            userId: params.user_id,
+          },
+        });
+      }
+
+      if (datasetKeys.includes('analyses')) {
+        await tx.analysisJob.deleteMany({
+          where: {
+            userId: params.user_id,
+          },
+        });
+      }
+
+      if (datasetKeys.includes('puzzle_sessions')) {
+        await tx.puzzleSession.deleteMany({
+          where: {
+            userId: params.user_id,
+          },
+        });
+      }
+
+      const shouldClearSummaries =
+        datasetKeys.includes('games') || datasetKeys.includes('analyses');
+
+      if (shouldClearSummaries) {
+        await tx.userMistakeSummary.deleteMany({
+          where: {
+            userId: params.user_id,
+          },
+        });
+      }
+
+      const afterCounts = await this.getCounts(tx, params.user_id);
+      const afterSummaries = shouldClearSummaries
+        ? 0
+        : await tx.userMistakeSummary.count({
+            where: {
+              userId: params.user_id,
+            },
+          });
+
+      return {
+        deleted_datasets: datasetKeys,
+        deleted_counts: {
+          games_count: beforeCounts.games_count - afterCounts.games_count,
+          analyses_count:
+            beforeCounts.analyses_count - afterCounts.analyses_count,
+          move_evaluations_count:
+            beforeCounts.move_evaluations_count -
+            afterCounts.move_evaluations_count,
+          critical_mistakes_count:
+            beforeCounts.critical_mistakes_count -
+            afterCounts.critical_mistakes_count,
+          puzzle_sessions_count:
+            beforeCounts.puzzle_sessions_count -
+            afterCounts.puzzle_sessions_count,
+          user_mistake_summaries_count: beforeSummaries - afterSummaries,
+        },
+        remaining_counts: afterCounts,
+        deleted_at: new Date().toISOString(),
+      };
+    });
+  }
+
+  private async getCounts(tx: Prisma.TransactionClient, userId: string) {
+    const [
+      gamesCount,
+      analysesCount,
+      moveEvaluationsCount,
+      criticalMistakesCount,
+      puzzleSessionsCount,
+    ] = await Promise.all([
+      tx.game.count({
+        where: {
+          userId,
+        },
+      }),
+      tx.analysisJob.count({
+        where: {
+          userId,
+        },
+      }),
+      tx.analysisMoveEvaluation.count({
+        where: {
+          analysisJob: {
+            userId,
+          },
+        },
+      }),
+      tx.criticalMistake.count({
+        where: {
+          userId,
+        },
+      }),
+      tx.puzzleSession.count({
+        where: {
+          userId,
+        },
+      }),
+    ]);
+
+    return {
+      games_count: gamesCount,
+      analyses_count: analysesCount,
+      move_evaluations_count: moveEvaluationsCount,
+      critical_mistakes_count: criticalMistakesCount,
+      puzzle_sessions_count: puzzleSessionsCount,
     };
   }
 }

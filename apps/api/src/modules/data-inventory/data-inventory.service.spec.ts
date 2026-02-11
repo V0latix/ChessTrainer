@@ -121,4 +121,78 @@ describe('DataInventoryService', () => {
       },
     });
   });
+
+  it('deletes selected datasets and returns deleted/remaining counts', async () => {
+    const tx = {
+      game: {
+        count: jest.fn().mockResolvedValueOnce(24).mockResolvedValueOnce(24),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      analysisJob: {
+        count: jest.fn().mockResolvedValueOnce(12).mockResolvedValueOnce(0),
+        deleteMany: jest.fn().mockResolvedValue({ count: 12 }),
+      },
+      analysisMoveEvaluation: {
+        count: jest.fn().mockResolvedValueOnce(580).mockResolvedValueOnce(0),
+      },
+      criticalMistake: {
+        count: jest.fn().mockResolvedValueOnce(35).mockResolvedValueOnce(0),
+      },
+      puzzleSession: {
+        count: jest.fn().mockResolvedValueOnce(8).mockResolvedValueOnce(0),
+        deleteMany: jest.fn().mockResolvedValue({ count: 8 }),
+      },
+      userMistakeSummary: {
+        count: jest.fn().mockResolvedValueOnce(4),
+        deleteMany: jest.fn().mockResolvedValue({ count: 4 }),
+      },
+    };
+
+    const service = new DataInventoryService({
+      $transaction: jest.fn((callback: (client: unknown) => unknown) =>
+        callback(tx as any),
+      ),
+    } as any);
+
+    await expect(
+      service.deleteDatasets({
+        user_id: 'local-user-1',
+        dataset_keys: ['analyses', 'puzzle_sessions'],
+      }),
+    ).resolves.toEqual({
+      deleted_datasets: ['analyses', 'puzzle_sessions'],
+      deleted_counts: {
+        games_count: 0,
+        analyses_count: 12,
+        move_evaluations_count: 580,
+        critical_mistakes_count: 35,
+        puzzle_sessions_count: 8,
+        user_mistake_summaries_count: 4,
+      },
+      remaining_counts: {
+        games_count: 24,
+        analyses_count: 0,
+        move_evaluations_count: 0,
+        critical_mistakes_count: 0,
+        puzzle_sessions_count: 0,
+      },
+      deleted_at: expect.any(String),
+    });
+
+    expect(tx.analysisJob.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'local-user-1',
+      },
+    });
+    expect(tx.puzzleSession.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'local-user-1',
+      },
+    });
+    expect(tx.userMistakeSummary.deleteMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'local-user-1',
+      },
+    });
+  });
 });

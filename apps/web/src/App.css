@@ -335,6 +335,22 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.data-delete-zone {
+  grid-column: span 2;
+}
+
+.data-delete-summary {
+  margin-top: 12px;
+  border: 1px solid #5c2a39;
+  border-radius: 10px;
+  padding: 10px;
+  background: #1c1017;
+}
+
+.data-delete-summary p {
+  margin: 0 0 8px;
+}
+
 .auth-shell {
   min-height: 100vh;
   display: flex;

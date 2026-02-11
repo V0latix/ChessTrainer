@@ -153,6 +153,15 @@ npm run dev
   - Returns latest update context with timestamps (last imported game, last analysis update, last detected critical mistake).
   - New protected web route: `/data/inventory`.
   - Inventory page displays counts and recent data context for transparent storage visibility.
+- Dataset deletion controls (Story 5.4):
+  - API endpoint: `POST /data/delete-datasets`.
+  - Supports selected dataset deletion:
+    - `games`
+    - `analyses`
+    - `puzzle_sessions`
+  - Returns deletion summary with `deleted_counts` + `remaining_counts`.
+  - Data inventory page now includes explicit selection + confirmation before deletion.
+  - After deletion, inventory refreshes immediately and progress views reflect updated backend state on next load.
 
 ## Useful Commands
 

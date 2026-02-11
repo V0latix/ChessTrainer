@@ -1,17 +1,20 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DataInventoryPage } from './DataInventoryPage';
 
-const { getDataInventoryMock } = vi.hoisted(() => {
+const { getDataInventoryMock, deleteStoredDatasetsMock } = vi.hoisted(() => {
   return {
     getDataInventoryMock: vi.fn(),
+    deleteStoredDatasetsMock: vi.fn(),
   };
 });
 
 vi.mock('../../lib/data-inventory', () => {
   return {
     getDataInventory: getDataInventoryMock,
+    deleteStoredDatasets: deleteStoredDatasetsMock,
   };
 });
 
@@ -33,6 +36,7 @@ vi.mock('../auth/auth-context', () => {
 describe('DataInventoryPage', () => {
   beforeEach(() => {
     getDataInventoryMock.mockReset();
+    deleteStoredDatasetsMock.mockReset();
   });
 
   it('renders stored counts and latest updates', async () => {
@@ -117,5 +121,102 @@ describe('DataInventoryPage', () => {
     expect(screen.getByTestId('inventory-games-count')).toHaveTextContent('0');
     expect(screen.getByTestId('inventory-analyses-count')).toHaveTextContent('0');
     expect(screen.getAllByText('N/A').length).toBeGreaterThan(0);
+  });
+
+  it('deletes selected datasets and refreshes inventory view', async () => {
+    const user = userEvent.setup();
+
+    getDataInventoryMock
+      .mockResolvedValueOnce({
+        generated_at: '2026-02-11T00:00:00.000Z',
+        counts: {
+          games_count: 24,
+          analyses_count: 12,
+          move_evaluations_count: 580,
+          critical_mistakes_count: 35,
+          puzzle_sessions_count: 8,
+        },
+        latest_updates: {
+          last_game_import: null,
+          last_analysis_update: null,
+          last_mistake_update: null,
+        },
+      })
+      .mockResolvedValueOnce({
+        generated_at: '2026-02-11T00:10:00.000Z',
+        counts: {
+          games_count: 24,
+          analyses_count: 8,
+          move_evaluations_count: 460,
+          critical_mistakes_count: 17,
+          puzzle_sessions_count: 1,
+        },
+        latest_updates: {
+          last_game_import: null,
+          last_analysis_update: null,
+          last_mistake_update: null,
+        },
+      });
+
+    deleteStoredDatasetsMock.mockResolvedValue({
+      deleted_datasets: ['analyses', 'puzzle_sessions'],
+      deleted_counts: {
+        games_count: 0,
+        analyses_count: 4,
+        move_evaluations_count: 120,
+        critical_mistakes_count: 18,
+        puzzle_sessions_count: 7,
+        user_mistake_summaries_count: 3,
+      },
+      remaining_counts: {
+        games_count: 24,
+        analyses_count: 8,
+        move_evaluations_count: 460,
+        critical_mistakes_count: 17,
+        puzzle_sessions_count: 1,
+      },
+      deleted_at: '2026-02-11T00:09:00.000Z',
+    });
+
+    render(
+      <MemoryRouter>
+        <DataInventoryPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(getDataInventoryMock).toHaveBeenCalledTimes(1);
+    });
+
+    await user.click(
+      screen.getByLabelText(/Supprimer uniquement les analyses/i),
+    );
+    await user.click(
+      screen.getByLabelText(/Supprimer les sessions puzzle stockées/i),
+    );
+    await user.click(
+      screen.getByLabelText(/Je confirme vouloir supprimer ces datasets/i),
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: /Supprimer les datasets sélectionnés/i,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(deleteStoredDatasetsMock).toHaveBeenCalledWith({
+        accessToken: 'access-token-1',
+        datasetKeys: ['analyses', 'puzzle_sessions'],
+      });
+    });
+
+    await waitFor(() => {
+      expect(getDataInventoryMock).toHaveBeenCalledTimes(2);
+    });
+
+    expect(screen.getByTestId('data-delete-summary')).toHaveTextContent(
+      /Datasets supprimés/i,
+    );
+    expect(screen.getByTestId('inventory-analyses-count')).toHaveTextContent('8');
   });
 });

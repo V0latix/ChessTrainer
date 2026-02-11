@@ -435,6 +435,25 @@ describe('API snake_case contract', () => {
           },
         },
       }),
+      deleteDatasets: jest.fn().mockResolvedValue({
+        deleted_datasets: ['analyses', 'puzzle_sessions'],
+        deleted_counts: {
+          games_count: 0,
+          analyses_count: 4,
+          move_evaluations_count: 120,
+          critical_mistakes_count: 18,
+          puzzle_sessions_count: 7,
+          user_mistake_summaries_count: 3,
+        },
+        remaining_counts: {
+          games_count: 24,
+          analyses_count: 8,
+          move_evaluations_count: 460,
+          critical_mistakes_count: 17,
+          puzzle_sessions_count: 1,
+        },
+        deleted_at: '2026-02-11T10:07:00.000Z',
+      }),
     } as any);
 
     const result = await controller.getInventory({
@@ -445,5 +464,19 @@ describe('API snake_case contract', () => {
     });
 
     expectSnakeCaseKeys(result);
+
+    const deletedResult = await controller.deleteDatasets(
+      {
+        local_user_id: 'user-1',
+        supabase_sub: 'sub-1',
+        email: 'leo@example.com',
+        role: 'user',
+      },
+      {
+        dataset_keys: ['analyses', 'puzzle_sessions'],
+      },
+    );
+
+    expectSnakeCaseKeys(deletedResult);
   });
 });
