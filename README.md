@@ -56,6 +56,13 @@ npm run dev
   - Scans recent archives and inserts only new games for the authenticated user.
   - Dedup is deterministic using `(userId, gameUrl)`; existing rows are skipped.
   - Summary returns `scanned_count`, `imported_count`, `already_existing_count`, and `failed_count`.
+- Chess.com retry/backoff resilience (Story 2.4):
+  - Transient Chess.com failures (`408`, `429`, `5xx`, network errors) are retried with exponential backoff.
+  - Retry budget and delays are configurable via:
+    - `CHESSCOM_RETRY_MAX_RETRIES`
+    - `CHESSCOM_RETRY_BASE_DELAY_MS`
+    - `CHESSCOM_RETRY_MAX_DELAY_MS`
+  - Final failure status is explicit in API responses (archive listing errors include HTTP status and attempts; per-period failures include reason suffix `_after_<n>_attempts`).
 
 ## Useful Commands
 

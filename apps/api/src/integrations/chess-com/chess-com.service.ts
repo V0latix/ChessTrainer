@@ -62,6 +62,18 @@ export class ChessComService {
   private readonly apiBaseUrl =
     process.env.CHESSCOM_API_BASE_URL?.replace(/\/$/, '') ??
     'https://api.chess.com/pub';
+  private readonly maxRetries = this.readPositiveIntEnv(
+    'CHESSCOM_RETRY_MAX_RETRIES',
+    2,
+  );
+  private readonly retryBaseDelayMs = this.readPositiveIntEnv(
+    'CHESSCOM_RETRY_BASE_DELAY_MS',
+    250,
+  );
+  private readonly retryMaxDelayMs = this.readPositiveIntEnv(
+    'CHESSCOM_RETRY_MAX_DELAY_MS',
+    4000,
+  );
 
   async listCandidateGames(
     username: string,
@@ -90,9 +102,15 @@ export class ChessComService {
     const archivesLimit = Math.max(1, Math.min(12, archivesCount));
 
     const archivesUrl = `${this.apiBaseUrl}/player/${normalizedUsername}/games/archives`;
-    const archivesResponse = await fetch(archivesUrl, {
-      headers: this.defaultHeaders(),
-    });
+    const archivesRequest = await this.fetchWithRetry(archivesUrl);
+
+    if (!archivesRequest.response) {
+      throw new BadRequestException(
+        `Unable to fetch Chess.com archives (network error after ${archivesRequest.attempts} attempts).`,
+      );
+    }
+
+    const archivesResponse = archivesRequest.response;
 
     if (archivesResponse.status === 404) {
       throw new NotFoundException('Chess.com username not found.');
@@ -100,7 +118,7 @@ export class ChessComService {
 
     if (!archivesResponse.ok) {
       throw new BadRequestException(
-        `Unable to fetch Chess.com archives (${archivesResponse.status}).`,
+        `Unable to fetch Chess.com archives (${archivesResponse.status}) after ${archivesRequest.attempts} attempts.`,
       );
     }
 
@@ -114,15 +132,24 @@ export class ChessComService {
 
     for (const archiveUrl of selectedArchiveUrls) {
       const period = this.periodFromArchiveUrl(archiveUrl);
-      const archiveGamesResponse = await fetch(archiveUrl, {
-        headers: this.defaultHeaders(),
-      });
+      const archiveRequest = await this.fetchWithRetry(archiveUrl);
+
+      if (!archiveRequest.response) {
+        unavailablePeriods.push({
+          period,
+          archive_url: archiveUrl,
+          reason: `archive_unavailable_network_error_after_${archiveRequest.attempts}_attempts`,
+        });
+        continue;
+      }
+
+      const archiveGamesResponse = archiveRequest.response;
 
       if (!archiveGamesResponse.ok) {
         unavailablePeriods.push({
           period,
           archive_url: archiveUrl,
-          reason: `archive_unavailable_${archiveGamesResponse.status}`,
+          reason: `archive_unavailable_${archiveGamesResponse.status}_after_${archiveRequest.attempts}_attempts`,
         });
         continue;
       }
@@ -160,6 +187,100 @@ export class ChessComService {
     };
   }
 
+  private async fetchWithRetry(url: string): Promise<{
+    response: Response | null;
+    attempts: number;
+  }> {
+    const maxAttempts = this.maxRetries + 1;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          headers: this.defaultHeaders(),
+        });
+
+        if (response.ok || !this.isRetryableStatus(response.status)) {
+          return {
+            response,
+            attempts: attempt,
+          };
+        }
+
+        if (attempt === maxAttempts) {
+          return {
+            response,
+            attempts: attempt,
+          };
+        }
+
+        await this.sleep(this.resolveBackoffDelayMs(attempt, response));
+      } catch {
+        if (attempt === maxAttempts) {
+          return {
+            response: null,
+            attempts: attempt,
+          };
+        }
+
+        await this.sleep(this.resolveBackoffDelayMs(attempt));
+      }
+    }
+
+    return {
+      response: null,
+      attempts: maxAttempts,
+    };
+  }
+
+  private isRetryableStatus(status: number) {
+    return status === 408 || status === 429 || status >= 500;
+  }
+
+  private resolveBackoffDelayMs(attempt: number, response?: Response) {
+    const exponentialDelay = Math.min(
+      this.retryMaxDelayMs,
+      this.retryBaseDelayMs * 2 ** (attempt - 1),
+    );
+    const retryAfterDelay = this.readRetryAfterDelayMs(response);
+
+    if (retryAfterDelay === null) {
+      return exponentialDelay;
+    }
+
+    return Math.min(
+      this.retryMaxDelayMs,
+      Math.max(exponentialDelay, retryAfterDelay),
+    );
+  }
+
+  private readRetryAfterDelayMs(response?: Response): number | null {
+    if (!response?.headers?.get) {
+      return null;
+    }
+
+    const header = response.headers.get('retry-after');
+
+    if (!header) {
+      return null;
+    }
+
+    const asSeconds = Number(header);
+    if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+      return asSeconds * 1000;
+    }
+
+    const asDateMs = Date.parse(header);
+    if (Number.isNaN(asDateMs)) {
+      return null;
+    }
+
+    return Math.max(0, asDateMs - Date.now());
+  }
+
+  protected async sleep(delayMs: number) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
   private validateUsername(username: string) {
     const normalized = username.trim().toLowerCase();
     const usernameRegex = /^[a-z0-9_-]{3,25}$/;
@@ -185,5 +306,14 @@ export class ChessComService {
       'User-Agent':
         'ChessTrainer/0.1 (+https://github.com/V0latix/ChessTrainer)',
     };
+  }
+
+  private readPositiveIntEnv(envKey: string, fallback: number) {
+    const value = Number(process.env[envKey]);
+    if (!Number.isFinite(value) || value < 0) {
+      return fallback;
+    }
+
+    return Math.floor(value);
   }
 }
