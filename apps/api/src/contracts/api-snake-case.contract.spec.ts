@@ -236,6 +236,16 @@ describe('API snake_case contract', () => {
           created_at: '2026-02-11T00:00:00.000Z',
         },
       }),
+      evaluateAttempt: jest.fn().mockResolvedValue({
+        puzzle_id: 'mistake-1',
+        attempted_move_uci: 'h1h2',
+        best_move_uci: 'h1g1',
+        is_correct: false,
+        status: 'incorrect',
+        feedback_title: 'Presque',
+        feedback_message: 'Ce n’est pas le meilleur coup. Essaie encore: h1g1.',
+        retry_available: true,
+      }),
     } as any);
 
     const puzzleResult = await controller.getNextPuzzle({
@@ -246,5 +256,20 @@ describe('API snake_case contract', () => {
     });
 
     expectSnakeCaseKeys(puzzleResult);
+
+    const attemptResult = await controller.evaluatePuzzleAttempt(
+      {
+        local_user_id: 'user-1',
+        supabase_sub: 'sub-1',
+        email: 'leo@example.com',
+        role: 'user',
+      },
+      'mistake-1',
+      {
+        attempted_move_uci: 'h1h2',
+      },
+    );
+
+    expectSnakeCaseKeys(attemptResult);
   });
 });

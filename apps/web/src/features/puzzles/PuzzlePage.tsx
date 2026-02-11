@@ -2,8 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Board } from '../../components/Board/Board';
 import { Puzzle } from '../../components/Puzzle/Puzzle';
+import {
+  evaluatePuzzleAttempt,
+  getNextPuzzle,
+  type EvaluatePuzzleAttemptResponse,
+  type NextPuzzleResponse,
+} from '../../lib/puzzles';
 import { useAuth } from '../auth/auth-context';
-import { getNextPuzzle, type NextPuzzleResponse } from '../../lib/puzzles';
 
 export function PuzzlePage() {
   const { session } = useAuth();
@@ -11,6 +16,10 @@ export function PuzzlePage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [puzzle, setPuzzle] = useState<NextPuzzleResponse | null>(null);
   const [lastMoveUci, setLastMoveUci] = useState<string | null>(null);
+  const [isSubmittingAttempt, setIsSubmittingAttempt] = useState(false);
+  const [attemptResult, setAttemptResult] =
+    useState<EvaluatePuzzleAttemptResponse | null>(null);
+  const [boardResetVersion, setBoardResetVersion] = useState(0);
 
   useEffect(() => {
     if (!session?.access_token) {
@@ -27,6 +36,9 @@ export function PuzzlePage() {
         }
 
         setPuzzle(result);
+        setLastMoveUci(null);
+        setAttemptResult(null);
+        setBoardResetVersion(0);
         setErrorMessage(null);
       } catch (error) {
         if (isCancelled) {
@@ -48,6 +60,41 @@ export function PuzzlePage() {
       isCancelled = true;
     };
   }, [session?.access_token]);
+
+  async function handleMovePlayed(uciMove: string) {
+    if (!session?.access_token || !puzzle || isSubmittingAttempt || attemptResult) {
+      return;
+    }
+
+    setLastMoveUci(uciMove);
+    setErrorMessage(null);
+    setIsSubmittingAttempt(true);
+
+    try {
+      const result = await evaluatePuzzleAttempt({
+        accessToken: session.access_token,
+        puzzleId: puzzle.puzzle_id,
+        attemptedMoveUci: uciMove,
+      });
+      setAttemptResult(result);
+    } catch (error) {
+      setAttemptResult(null);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Impossible d’évaluer ce coup pour le moment.',
+      );
+    } finally {
+      setIsSubmittingAttempt(false);
+    }
+  }
+
+  function handleRetry() {
+    setAttemptResult(null);
+    setLastMoveUci(null);
+    setErrorMessage(null);
+    setBoardResetVersion((previous) => previous + 1);
+  }
 
   return (
     <main className="app-shell">
@@ -81,9 +128,13 @@ export function PuzzlePage() {
       {puzzle ? (
         <div className="grid puzzle-grid">
           <Board
+            key={`${puzzle.puzzle_id}-${boardResetVersion}`}
             initialFen={puzzle.fen}
             title="Board"
-            onMovePlayed={(uciMove) => setLastMoveUci(uciMove)}
+            onMovePlayed={(uciMove) => {
+              void handleMovePlayed(uciMove);
+            }}
+            isDisabled={isSubmittingAttempt || Boolean(attemptResult)}
           />
           <Puzzle
             objective={puzzle.objective}
@@ -109,6 +160,31 @@ export function PuzzlePage() {
             ) : (
               <p>Joue un coup sur le board pour démarrer.</p>
             )}
+            {isSubmittingAttempt ? <p>Évaluation du coup en cours...</p> : null}
+            {attemptResult ? (
+              <div
+                className={[
+                  'attempt-result',
+                  attemptResult.is_correct
+                    ? 'attempt-result-correct'
+                    : 'attempt-result-incorrect',
+                ].join(' ')}
+              >
+                <p>
+                  <strong>{attemptResult.feedback_title}</strong>
+                </p>
+                <p>{attemptResult.feedback_message}</p>
+                <p>
+                  Coup proposé: <strong>{attemptResult.attempted_move_uci}</strong> •
+                  meilleur coup: <strong>{attemptResult.best_move_uci}</strong>
+                </p>
+                {attemptResult.retry_available ? (
+                  <button className="auth-submit" type="button" onClick={handleRetry}>
+                    Réessayer cette position
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </section>
         </div>
       ) : null}

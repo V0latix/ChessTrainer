@@ -5,6 +5,7 @@ type BoardProps = {
   initialFen?: string;
   title?: string;
   onMovePlayed?: (uciMove: string) => void;
+  isDisabled?: boolean;
 };
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
@@ -25,7 +26,12 @@ const PIECE_SYMBOLS: Record<string, string> = {
   bk: '♚',
 };
 
-export function Board({ initialFen, title, onMovePlayed }: BoardProps) {
+export function Board({
+  initialFen,
+  title,
+  onMovePlayed,
+  isDisabled = false,
+}: BoardProps) {
   const [game, setGame] = useState(() => new Chess(initialFen));
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
 
@@ -51,6 +57,10 @@ export function Board({ initialFen, title, onMovePlayed }: BoardProps) {
   const sideToMove = game.turn() === 'w' ? 'blancs' : 'noirs';
 
   function handleSquareClick(square: string) {
+    if (isDisabled) {
+      return;
+    }
+
     if (!selectedSquare) {
       setSelectedSquare(square);
       return;
@@ -96,10 +106,12 @@ export function Board({ initialFen, title, onMovePlayed }: BoardProps) {
                 'board-square',
                 item.isLightSquare ? 'board-square-light' : 'board-square-dark',
                 isSelected ? 'board-square-selected' : '',
+                isDisabled ? 'board-square-disabled' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
               onClick={() => handleSquareClick(item.square)}
+              disabled={isDisabled}
               aria-label={`Case ${item.square}${symbol ? `, pièce ${symbol}` : ''}`}
             >
               {symbol}

@@ -99,6 +99,11 @@ npm run dev
   - New protected web route: `/puzzle`.
   - Puzzle page fetches and renders the position on an interactive board, plus objective/context panel.
   - If no analyzed mistake exists yet, the page displays an explicit empty state.
+- Attempt evaluation + retry loop (Story 4.2):
+  - API endpoint: `POST /puzzles/:puzzle_id/attempt` with `attempted_move_uci`.
+  - Server evaluates move vs stored `best_move_uci` and returns explicit feedback payload (`is_correct`, `status`, `feedback_*`, `retry_available`).
+  - Puzzle page evaluates the played move immediately and shows success/failure feedback.
+  - On failure, user can retry the same position with a one-click board reset.
 
 ## Useful Commands
 

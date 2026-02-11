@@ -23,6 +23,17 @@ export type NextPuzzleResponse = {
   };
 };
 
+export type EvaluatePuzzleAttemptResponse = {
+  puzzle_id: string;
+  attempted_move_uci: string;
+  best_move_uci: string;
+  is_correct: boolean;
+  status: 'correct' | 'incorrect';
+  feedback_title: string;
+  feedback_message: string;
+  retry_available: boolean;
+};
+
 export async function getNextPuzzle(params: {
   accessToken: string;
 }): Promise<NextPuzzleResponse | null> {
@@ -43,5 +54,37 @@ export async function getNextPuzzle(params: {
   }
 
   const payload = (await response.json()) as { data: NextPuzzleResponse | null };
+  return payload.data;
+}
+
+export async function evaluatePuzzleAttempt(params: {
+  accessToken: string;
+  puzzleId: string;
+  attemptedMoveUci: string;
+}): Promise<EvaluatePuzzleAttemptResponse> {
+  if (!env.apiBaseUrl) {
+    throw new Error('VITE_API_BASE_URL is missing.');
+  }
+
+  const response = await fetch(
+    `${env.apiBaseUrl}/puzzles/${encodeURIComponent(params.puzzleId)}/attempt`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${params.accessToken}`,
+      },
+      body: JSON.stringify({
+        attempted_move_uci: params.attemptedMoveUci,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(`Puzzle attempt failed (${response.status}): ${responseText}`);
+  }
+
+  const payload = (await response.json()) as { data: EvaluatePuzzleAttemptResponse };
   return payload.data;
 }

@@ -1,4 +1,5 @@
 import { PuzzlesService } from './puzzles.service';
+import { NotFoundException } from '@nestjs/common';
 
 describe('PuzzlesService', () => {
   it('returns a puzzle projection from the most recent critical mistake', async () => {
@@ -98,5 +99,91 @@ describe('PuzzlesService', () => {
         user_id: 'local-user-1',
       }),
     ).resolves.toBeNull();
+  });
+
+  it('marks attempt as correct when move matches best move', async () => {
+    const findFirst = jest.fn().mockResolvedValue({
+      id: 'mistake-1',
+      bestMoveUci: 'h1g1',
+    });
+
+    const service = new PuzzlesService({
+      criticalMistake: {
+        findFirst,
+      },
+    } as any);
+
+    await expect(
+      service.evaluateAttempt({
+        user_id: 'local-user-1',
+        puzzle_id: 'mistake-1',
+        attempted_move_uci: 'h1g1',
+      }),
+    ).resolves.toEqual({
+      puzzle_id: 'mistake-1',
+      attempted_move_uci: 'h1g1',
+      best_move_uci: 'h1g1',
+      is_correct: true,
+      status: 'correct',
+      feedback_title: 'Bien joué',
+      feedback_message:
+        'Excellent: c’est le meilleur coup dans cette position.',
+      retry_available: false,
+    });
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'mistake-1',
+        userId: 'local-user-1',
+      },
+      select: {
+        id: true,
+        bestMoveUci: true,
+      },
+    });
+  });
+
+  it('marks attempt as incorrect and allows retry when move differs', async () => {
+    const service = new PuzzlesService({
+      criticalMistake: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'mistake-1',
+          bestMoveUci: 'h1g1',
+        }),
+      },
+    } as any);
+
+    await expect(
+      service.evaluateAttempt({
+        user_id: 'local-user-1',
+        puzzle_id: 'mistake-1',
+        attempted_move_uci: 'h1h2',
+      }),
+    ).resolves.toEqual({
+      puzzle_id: 'mistake-1',
+      attempted_move_uci: 'h1h2',
+      best_move_uci: 'h1g1',
+      is_correct: false,
+      status: 'incorrect',
+      feedback_title: 'Presque',
+      feedback_message: 'Ce n’est pas le meilleur coup. Essaie encore: h1g1.',
+      retry_available: true,
+    });
+  });
+
+  it('throws not found when puzzle does not belong to user', async () => {
+    const service = new PuzzlesService({
+      criticalMistake: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    } as any);
+
+    await expect(
+      service.evaluateAttempt({
+        user_id: 'local-user-1',
+        puzzle_id: 'mistake-unknown',
+        attempted_move_uci: 'h1g1',
+      }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

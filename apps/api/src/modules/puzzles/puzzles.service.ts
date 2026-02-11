@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common/exceptions/not-found.exception';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export type NextPuzzleResult = {
@@ -22,6 +23,17 @@ export type NextPuzzleResult = {
     ply_index: number;
     created_at: string;
   };
+};
+
+export type EvaluatePuzzleAttemptResult = {
+  puzzle_id: string;
+  attempted_move_uci: string;
+  best_move_uci: string;
+  is_correct: boolean;
+  status: 'correct' | 'incorrect';
+  feedback_title: string;
+  feedback_message: string;
+  retry_available: boolean;
 };
 
 @Injectable()
@@ -89,6 +101,44 @@ export class PuzzlesService {
         ply_index: latestMistake.plyIndex,
         created_at: latestMistake.createdAt.toISOString(),
       },
+    };
+  }
+
+  async evaluateAttempt(params: {
+    user_id: string;
+    puzzle_id: string;
+    attempted_move_uci: string;
+  }): Promise<EvaluatePuzzleAttemptResult> {
+    const mistake = await this.prisma.criticalMistake.findFirst({
+      where: {
+        id: params.puzzle_id,
+        userId: params.user_id,
+      },
+      select: {
+        id: true,
+        bestMoveUci: true,
+      },
+    });
+
+    if (!mistake) {
+      throw new NotFoundException('Puzzle not found.');
+    }
+
+    const attemptedMove = params.attempted_move_uci.trim().toLowerCase();
+    const bestMove = mistake.bestMoveUci.trim().toLowerCase();
+    const isCorrect = attemptedMove === bestMove;
+
+    return {
+      puzzle_id: mistake.id,
+      attempted_move_uci: attemptedMove,
+      best_move_uci: bestMove,
+      is_correct: isCorrect,
+      status: isCorrect ? 'correct' : 'incorrect',
+      feedback_title: isCorrect ? 'Bien joué' : 'Presque',
+      feedback_message: isCorrect
+        ? 'Excellent: c’est le meilleur coup dans cette position.'
+        : `Ce n’est pas le meilleur coup. Essaie encore: ${bestMove}.`,
+      retry_available: !isCorrect,
     };
   }
 

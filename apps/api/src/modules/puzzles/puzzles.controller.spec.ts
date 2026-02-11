@@ -1,4 +1,5 @@
 import { PuzzlesController } from './puzzles.controller';
+import { BadRequestException } from '@nestjs/common';
 
 describe('PuzzlesController', () => {
   it('returns next puzzle payload from latest critical mistake', async () => {
@@ -82,5 +83,77 @@ describe('PuzzlesController', () => {
     ).resolves.toEqual({
       data: null,
     });
+  });
+
+  it('evaluates an attempt and returns incorrect feedback with retry', async () => {
+    const evaluateAttempt = jest.fn().mockResolvedValue({
+      puzzle_id: 'mistake-1',
+      attempted_move_uci: 'h1h2',
+      best_move_uci: 'h1g1',
+      is_correct: false,
+      status: 'incorrect',
+      feedback_title: 'Presque',
+      feedback_message: 'Ce n’est pas le meilleur coup. Essaie encore: h1g1.',
+      retry_available: true,
+    });
+
+    const controller = new PuzzlesController({
+      getNextPuzzle: jest.fn(),
+      evaluateAttempt,
+    } as any);
+
+    await expect(
+      controller.evaluatePuzzleAttempt(
+        {
+          local_user_id: 'local-user-1',
+          supabase_sub: 'sub-1',
+          email: 'leo@example.com',
+          role: 'user',
+        },
+        'mistake-1',
+        {
+          attempted_move_uci: 'h1h2',
+        },
+      ),
+    ).resolves.toEqual({
+      data: {
+        puzzle_id: 'mistake-1',
+        attempted_move_uci: 'h1h2',
+        best_move_uci: 'h1g1',
+        is_correct: false,
+        status: 'incorrect',
+        feedback_title: 'Presque',
+        feedback_message: 'Ce n’est pas le meilleur coup. Essaie encore: h1g1.',
+        retry_available: true,
+      },
+    });
+
+    expect(evaluateAttempt).toHaveBeenCalledWith({
+      user_id: 'local-user-1',
+      puzzle_id: 'mistake-1',
+      attempted_move_uci: 'h1h2',
+    });
+  });
+
+  it('rejects invalid attempted_move_uci', async () => {
+    const controller = new PuzzlesController({
+      getNextPuzzle: jest.fn(),
+      evaluateAttempt: jest.fn(),
+    } as any);
+
+    await expect(
+      controller.evaluatePuzzleAttempt(
+        {
+          local_user_id: 'local-user-1',
+          supabase_sub: 'sub-1',
+          email: 'leo@example.com',
+          role: 'user',
+        },
+        'mistake-1',
+        {
+          attempted_move_uci: 'invalid',
+        },
+      ),
+    ).rejects.toThrow(BadRequestException);
   });
 });
