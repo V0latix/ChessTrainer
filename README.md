@@ -47,6 +47,10 @@ npm run dev
   - Onboarding includes username fetch to list recent candidate games as selectable entries.
   - API endpoint: `GET /imports/chess-com/candidate-games?username=<name>&archives_count=<n>`.
   - Unavailable archive periods are returned and displayed gracefully.
+- Selected import (Story 2.2):
+  - API endpoint: `POST /imports/chess-com/import-selected`.
+  - Only selected game URLs are persisted for the authenticated user.
+  - Import summary returns `imported_count`, `already_existing_count`, and `failed_count`.
 
 ## Useful Commands
 

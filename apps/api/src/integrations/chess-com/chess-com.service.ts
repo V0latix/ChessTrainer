@@ -21,9 +21,10 @@ type ChessComArchiveGamesResponse = {
   }>;
 };
 
-export type CandidateGame = {
+export type RecentArchiveGame = {
   game_url: string;
   period: string;
+  pgn: string | null;
   end_time: string | null;
   time_class: string | null;
   rated: boolean;
@@ -32,6 +33,9 @@ export type CandidateGame = {
   black_username: string | null;
   white_result: string | null;
   black_result: string | null;
+};
+
+export type CandidateGame = RecentArchiveGame & {
   selectable: boolean;
 };
 
@@ -47,6 +51,12 @@ export type CandidateGamesResult = {
   unavailable_periods: UnavailablePeriod[];
 };
 
+export type RecentArchiveGamesResult = {
+  username: string;
+  games: RecentArchiveGame[];
+  unavailable_periods: UnavailablePeriod[];
+};
+
 @Injectable()
 export class ChessComService {
   private readonly apiBaseUrl =
@@ -57,15 +67,31 @@ export class ChessComService {
     username: string,
     archivesCount = 2,
   ): Promise<CandidateGamesResult> {
+    const recentGamesResult = await this.fetchRecentArchiveGames(
+      username,
+      archivesCount,
+    );
+
+    return {
+      username: recentGamesResult.username,
+      candidate_games: recentGamesResult.games.map((game) => ({
+        ...game,
+        selectable: true,
+      })),
+      unavailable_periods: recentGamesResult.unavailable_periods,
+    };
+  }
+
+  async fetchRecentArchiveGames(
+    username: string,
+    archivesCount = 2,
+  ): Promise<RecentArchiveGamesResult> {
     const normalizedUsername = this.validateUsername(username);
     const archivesLimit = Math.max(1, Math.min(12, archivesCount));
 
     const archivesUrl = `${this.apiBaseUrl}/player/${normalizedUsername}/games/archives`;
     const archivesResponse = await fetch(archivesUrl, {
-      headers: {
-        'User-Agent':
-          'ChessTrainer/0.1 (+https://github.com/V0latix/ChessTrainer)',
-      },
+      headers: this.defaultHeaders(),
     });
 
     if (archivesResponse.status === 404) {
@@ -84,15 +110,12 @@ export class ChessComService {
 
     const selectedArchiveUrls = archiveUrls.slice(-archivesLimit).reverse();
     const unavailablePeriods: UnavailablePeriod[] = [];
-    const candidateGames: CandidateGame[] = [];
+    const games: RecentArchiveGame[] = [];
 
     for (const archiveUrl of selectedArchiveUrls) {
       const period = this.periodFromArchiveUrl(archiveUrl);
       const archiveGamesResponse = await fetch(archiveUrl, {
-        headers: {
-          'User-Agent':
-            'ChessTrainer/0.1 (+https://github.com/V0latix/ChessTrainer)',
-        },
+        headers: this.defaultHeaders(),
       });
 
       if (!archiveGamesResponse.ok) {
@@ -106,16 +129,16 @@ export class ChessComService {
 
       const gamesPayload =
         (await archiveGamesResponse.json()) as ChessComArchiveGamesResponse;
-      const games = gamesPayload.games ?? [];
 
-      for (const game of games) {
+      for (const game of gamesPayload.games ?? []) {
         if (!game.url) {
           continue;
         }
 
-        candidateGames.push({
+        games.push({
           game_url: game.url,
           period,
+          pgn: game.pgn ?? null,
           end_time: game.end_time
             ? new Date(game.end_time * 1000).toISOString()
             : null,
@@ -126,14 +149,13 @@ export class ChessComService {
           black_username: game.black?.username ?? null,
           white_result: game.white?.result ?? null,
           black_result: game.black?.result ?? null,
-          selectable: true,
         });
       }
     }
 
     return {
       username: normalizedUsername,
-      candidate_games: candidateGames,
+      games,
       unavailable_periods: unavailablePeriods,
     };
   }
@@ -156,5 +178,12 @@ export class ChessComService {
     }
 
     return `${match[1]}-${match[2]}`;
+  }
+
+  private defaultHeaders() {
+    return {
+      'User-Agent':
+        'ChessTrainer/0.1 (+https://github.com/V0latix/ChessTrainer)',
+    };
   }
 }

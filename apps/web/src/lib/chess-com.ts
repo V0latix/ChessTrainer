@@ -27,6 +27,18 @@ export type CandidateGamesResponse = {
   total_candidate_games: number;
 };
 
+export type ImportSelectedGamesResponse = {
+  username: string;
+  selected_count: number;
+  imported_count: number;
+  already_existing_count: number;
+  failed_count: number;
+  failures: Array<{
+    game_url: string;
+    reason: string;
+  }>;
+};
+
 export async function listChessComCandidateGames(
   accessToken: string,
   username: string,
@@ -51,5 +63,35 @@ export async function listChessComCandidateGames(
   }
 
   const payload = (await response.json()) as { data: CandidateGamesResponse };
+  return payload.data;
+}
+
+export async function importSelectedChessComGames(params: {
+  accessToken: string;
+  username: string;
+  selectedGameUrls: string[];
+}): Promise<ImportSelectedGamesResponse> {
+  if (!env.apiBaseUrl) {
+    throw new Error('VITE_API_BASE_URL is missing.');
+  }
+
+  const response = await fetch(`${env.apiBaseUrl}/imports/chess-com/import-selected`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${params.accessToken}`,
+    },
+    body: JSON.stringify({
+      username: params.username,
+      selected_game_urls: params.selectedGameUrls,
+    }),
+  });
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(`Chess.com import failed (${response.status}): ${responseText}`);
+  }
+
+  const payload = (await response.json()) as { data: ImportSelectedGamesResponse };
   return payload.data;
 }

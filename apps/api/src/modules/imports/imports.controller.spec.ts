@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { ImportsController } from './imports.controller';
 
 describe('ImportsController', () => {
@@ -22,7 +23,10 @@ describe('ImportsController', () => {
       unavailable_periods: [],
     });
 
-    const controller = new ImportsController({ listCandidateGames } as any);
+    const controller = new ImportsController({
+      listCandidateGames,
+      importSelectedGames: jest.fn(),
+    } as any);
 
     await expect(
       controller.getChessComCandidateGames('leo', '3'),
@@ -40,5 +44,81 @@ describe('ImportsController', () => {
     });
 
     expect(listCandidateGames).toHaveBeenCalledWith('leo', 3);
+  });
+
+  it('imports selected games and returns summary counts', async () => {
+    const importSelectedGames = jest.fn().mockResolvedValue({
+      username: 'leo',
+      selected_count: 2,
+      imported_count: 1,
+      already_existing_count: 1,
+      failed_count: 0,
+      failures: [],
+    });
+
+    const controller = new ImportsController({
+      listCandidateGames: jest.fn(),
+      importSelectedGames,
+    } as any);
+
+    await expect(
+      controller.importSelectedChessComGames(
+        {
+          local_user_id: 'local-user-1',
+          supabase_sub: 'supabase-sub-1',
+          email: 'leo@example.com',
+          role: 'user',
+        },
+        {
+          username: 'leo',
+          selected_game_urls: [
+            'https://www.chess.com/game/live/123',
+            'https://www.chess.com/game/live/124',
+          ],
+          archives_count: 2,
+        },
+      ),
+    ).resolves.toEqual({
+      data: {
+        username: 'leo',
+        selected_count: 2,
+        imported_count: 1,
+        already_existing_count: 1,
+        failed_count: 0,
+        failures: [],
+      },
+    });
+
+    expect(importSelectedGames).toHaveBeenCalledWith({
+      user_id: 'local-user-1',
+      username: 'leo',
+      selected_game_urls: [
+        'https://www.chess.com/game/live/123',
+        'https://www.chess.com/game/live/124',
+      ],
+      archives_count: 2,
+    });
+  });
+
+  it('rejects import when selected_game_urls is empty', async () => {
+    const controller = new ImportsController({
+      listCandidateGames: jest.fn(),
+      importSelectedGames: jest.fn(),
+    } as any);
+
+    await expect(
+      controller.importSelectedChessComGames(
+        {
+          local_user_id: 'local-user-1',
+          supabase_sub: 'supabase-sub-1',
+          email: 'leo@example.com',
+          role: 'user',
+        },
+        {
+          username: 'leo',
+          selected_game_urls: [],
+        },
+      ),
+    ).rejects.toThrow(BadRequestException);
   });
 });

@@ -5,7 +5,12 @@ import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationP
 import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
 import { Puzzle } from '../../components/Puzzle/Puzzle';
 import { deleteAccountFromApi } from '../../lib/account-delete';
-import { listChessComCandidateGames, type CandidateGame } from '../../lib/chess-com';
+import {
+  importSelectedChessComGames,
+  listChessComCandidateGames,
+  type CandidateGame,
+  type ImportSelectedGamesResponse,
+} from '../../lib/chess-com';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from './auth-context';
 
@@ -24,9 +29,12 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
 
   const [chessComUsername, setChessComUsername] = useState('');
   const [isFetchingGames, setIsFetchingGames] = useState(false);
+  const [isImportingGames, setIsImportingGames] = useState(false);
   const [candidateGames, setCandidateGames] = useState<CandidateGame[]>([]);
   const [unavailablePeriods, setUnavailablePeriods] = useState<string[]>([]);
   const [selectedGames, setSelectedGames] = useState<Record<string, boolean>>({});
+  const [importSummary, setImportSummary] =
+    useState<ImportSelectedGamesResponse | null>(null);
 
   const selectedCount = useMemo(
     () => Object.values(selectedGames).filter(Boolean).length,
@@ -89,7 +97,9 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
 
       navigate('/login', { replace: true });
     } catch (error) {
-      setLogoutError(error instanceof Error ? error.message : 'Suppression du compte impossible.');
+      setLogoutError(
+        error instanceof Error ? error.message : 'Suppression du compte impossible.',
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -98,6 +108,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
   async function handleFetchCandidateGames(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLogoutError(null);
+    setImportSummary(null);
 
     if (!session?.access_token) {
       setLogoutError('Session invalide, reconnecte-toi puis réessaie.');
@@ -107,7 +118,10 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
     setIsFetchingGames(true);
 
     try {
-      const result = await listChessComCandidateGames(session.access_token, chessComUsername.trim());
+      const result = await listChessComCandidateGames(
+        session.access_token,
+        chessComUsername.trim(),
+      );
       setCandidateGames(result.candidate_games);
       setUnavailablePeriods(
         result.unavailable_periods.map((period) => `${period.period} (${period.reason})`),
@@ -117,10 +131,47 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
       setCandidateGames([]);
       setUnavailablePeriods([]);
       setLogoutError(
-        error instanceof Error ? error.message : 'Impossible de récupérer les parties Chess.com.',
+        error instanceof Error
+          ? error.message
+          : 'Impossible de récupérer les parties Chess.com.',
       );
     } finally {
       setIsFetchingGames(false);
+    }
+  }
+
+  async function handleImportSelectedGames() {
+    setLogoutError(null);
+
+    if (!session?.access_token) {
+      setLogoutError('Session invalide, reconnecte-toi puis réessaie.');
+      return;
+    }
+
+    const selectedGameUrls = Object.entries(selectedGames)
+      .filter(([, isSelected]) => isSelected)
+      .map(([gameUrl]) => gameUrl);
+
+    if (selectedGameUrls.length === 0) {
+      setLogoutError('Sélectionne au moins une partie avant import.');
+      return;
+    }
+
+    setIsImportingGames(true);
+
+    try {
+      const summary = await importSelectedChessComGames({
+        accessToken: session.access_token,
+        username: chessComUsername.trim(),
+        selectedGameUrls,
+      });
+      setImportSummary(summary);
+    } catch (error) {
+      setLogoutError(
+        error instanceof Error ? error.message : 'Import des parties impossible.',
+      );
+    } finally {
+      setIsImportingGames(false);
     }
   }
 
@@ -142,7 +193,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           className="logout-button"
           type="button"
           onClick={handleLogout}
-          disabled={isLoggingOut || isDeleting || isFetchingGames}
+          disabled={isLoggingOut || isDeleting || isFetchingGames || isImportingGames}
         >
           {isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}
         </button>
@@ -175,7 +226,11 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
             required
           />
 
-          <button className="auth-submit" type="submit" disabled={isFetchingGames || isDeleting}>
+          <button
+            className="auth-submit"
+            type="submit"
+            disabled={isFetchingGames || isDeleting || isImportingGames}
+          >
             {isFetchingGames ? 'Récupération...' : 'Lister mes parties'}
           </button>
         </form>
@@ -201,7 +256,25 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
                 </li>
               ))}
             </ul>
+
+            <button
+              className="auth-submit import-submit"
+              type="button"
+              onClick={handleImportSelectedGames}
+              disabled={isImportingGames || isDeleting || isFetchingGames}
+            >
+              {isImportingGames ? 'Import en cours...' : 'Importer la sélection'}
+            </button>
           </>
+        ) : null}
+
+        {importSummary ? (
+          <div className="import-summary">
+            <p>Import terminé pour {importSummary.username}.</p>
+            <p>Succès: {importSummary.imported_count}</p>
+            <p>Déjà existantes: {importSummary.already_existing_count}</p>
+            <p>Échecs: {importSummary.failed_count}</p>
+          </div>
         ) : null}
 
         {unavailablePeriods.length > 0 ? (
@@ -233,7 +306,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           className="delete-button"
           type="button"
           onClick={handleDeleteAccount}
-          disabled={isDeleting || isLoggingOut || isFetchingGames}
+          disabled={isDeleting || isLoggingOut || isFetchingGames || isImportingGames}
         >
           {isDeleting ? 'Suppression...' : 'Supprimer mon compte'}
         </button>

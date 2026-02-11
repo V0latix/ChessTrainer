@@ -43,7 +43,7 @@ development_status:
   epic-1-retrospective: optional
   epic-2: in-progress
   2-1-connect-chess-com-and-list-candidate-games: review
-  2-2-import-selected-games: backlog
+  2-2-import-selected-games: review
   2-3-re-import-incrementally-without-duplicates: backlog
   2-4-apply-retry-and-backoff-on-chess-com-limits: backlog
   epic-2-retrospective: optional

@@ -19,8 +19,31 @@ model User {
   role        AppRole  @default(user)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  games       Game[]
 
   @@map("users")
+}
+
+model Game {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  provider         String   @default("chess_com")
+  gameUrl          String   @map("game_url")
+  chessComUsername String   @map("chess_com_username")
+  period           String
+  pgn              String?
+  endTime          DateTime? @map("end_time")
+  timeClass        String?   @map("time_class")
+  rated            Boolean   @default(false)
+  rules            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameUrl])
+  @@index([userId, createdAt])
+  @@map("games")
 }
 
 model AuditLog {
