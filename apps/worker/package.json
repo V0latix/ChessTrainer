@@ -9,7 +9,11 @@
     "start": "node dist/main.js",
     "lint": "tsc --noEmit -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "echo \"No worker tests yet\""
+    "test": "tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.17.1",
+    "chess.js": "^1.4.0"
   },
   "devDependencies": {
     "@types/node": "^24.1.0",

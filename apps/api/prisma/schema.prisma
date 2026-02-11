@@ -47,6 +47,7 @@ model Game {
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
   analysisJobs     AnalysisJob[]
+  moveEvaluations  AnalysisMoveEvaluation[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -61,6 +62,7 @@ model AnalysisJob {
   gameId          String            @map("game_id")
   status          AnalysisJobStatus @default(queued)
   queueJobId      String            @unique @map("queue_job_id")
+  attemptCount    Int               @default(0) @map("attempt_count")
   progressPercent Int               @default(0) @map("progress_percent")
   etaSeconds      Int?              @map("eta_seconds")
   startedAt       DateTime?         @map("started_at")
@@ -69,6 +71,7 @@ model AnalysisJob {
   errorMessage    String?           @map("error_message")
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
+  moveEvaluations AnalysisMoveEvaluation[]
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -76,6 +79,27 @@ model AnalysisJob {
   @@index([userId, status, createdAt])
   @@index([gameId, createdAt])
   @@map("analysis_jobs")
+}
+
+model AnalysisMoveEvaluation {
+  id               String   @id @default(cuid())
+  analysisJobId    String   @map("analysis_job_id")
+  gameId           String   @map("game_id")
+  plyIndex         Int      @map("ply_index")
+  fen              String
+  playedMoveUci    String   @map("played_move_uci")
+  bestMoveUci      String?  @map("best_move_uci")
+  scoreCp          Int?     @map("score_cp")
+  scoreMateIn      Int?     @map("score_mate_in")
+  searchedDepth    Int?     @map("searched_depth")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  analysisJob AnalysisJob @relation(fields: [analysisJobId], references: [id], onDelete: Cascade)
+  game       Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([analysisJobId, plyIndex])
+  @@index([gameId, plyIndex])
+  @@map("analysis_move_evaluations")
 }
 
 model AuditLog {

@@ -68,6 +68,17 @@ npm run dev
   - Enqueues asynchronous analysis jobs for imported games of the authenticated user.
   - Returns `enqueued_count`, `skipped_count`, and per-job tracking metadata (`job_id`, `queue_job_id`, initial `status`).
   - Jobs with existing active status (`queued`/`running`) are skipped to avoid duplicate active processing.
+- Worker Stockfish execution (Story 3.2):
+  - Worker scans `analysis_jobs` with `status=queued`, locks them to `running`, then analyzes game PGN moves.
+  - Each ply stores one persisted evaluation row (`analysis_move_evaluations`) with played move vs Stockfish best move and score.
+  - Timeout and retry policy are configurable:
+    - `ANALYSIS_TIMEOUT_MS` (default `60000`)
+    - `ANALYSIS_RETRY_MAX_RETRIES` (default `2`)
+    - `ANALYSIS_RETRY_BASE_DELAY_MS` (default `500`)
+    - `ANALYSIS_RETRY_MAX_DELAY_MS` (default `5000`)
+  - Stockfish binary path and worker polling:
+    - `STOCKFISH_BIN_PATH` (default `stockfish`)
+    - `WORKER_POLL_INTERVAL_MS`, `WORKER_BATCH_SIZE`, `WORKER_RUN_ONCE`
 
 ## Useful Commands
 
