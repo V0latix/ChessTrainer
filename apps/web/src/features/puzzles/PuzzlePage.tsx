@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Board } from '../../components/Board/Board';
+import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
 import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
 import { Puzzle } from '../../components/Puzzle/Puzzle';
 import {
@@ -209,15 +210,26 @@ export function PuzzlePage() {
 
       {currentPuzzle ? (
         <div className="grid puzzle-grid">
-          <Board
-            key={`${currentPuzzle.puzzle_id}-${boardResetVersion}`}
-            initialFen={currentPuzzle.fen}
-            title="Board"
-            onMovePlayed={(uciMove) => {
-              void handleMovePlayed(uciMove);
-            }}
-            isDisabled={isSubmittingAttempt || Boolean(attemptResult)}
-          />
+          <div className="puzzle-board-column">
+            <Board
+              key={`${currentPuzzle.puzzle_id}-${boardResetVersion}`}
+              initialFen={currentPuzzle.fen}
+              title="Board"
+              onMovePlayed={(uciMove) => {
+                void handleMovePlayed(uciMove);
+              }}
+              isDisabled={isSubmittingAttempt || Boolean(attemptResult)}
+            />
+            {attemptResult ? (
+              <ExplanationPanel
+                status={attemptResult.status}
+                attemptedMoveUci={attemptResult.attempted_move_uci}
+                bestMoveUci={attemptResult.best_move_uci}
+                wrongMoveExplanation={attemptResult.wrong_move_explanation}
+                bestMoveExplanation={attemptResult.best_move_explanation}
+              />
+            ) : null}
+          </div>
           <Puzzle
             objective={currentPuzzle.objective}
             source={currentPuzzle.source}

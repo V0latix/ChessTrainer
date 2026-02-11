@@ -40,6 +40,8 @@ export type EvaluatePuzzleAttemptResult = {
   status: 'correct' | 'incorrect';
   feedback_title: string;
   feedback_message: string;
+  wrong_move_explanation: string;
+  best_move_explanation: string;
   retry_available: boolean;
 };
 
@@ -114,6 +116,9 @@ export class PuzzlesService {
       select: {
         id: true,
         bestMoveUci: true,
+        phase: true,
+        severity: true,
+        evalDropCp: true,
       },
     });
 
@@ -135,6 +140,18 @@ export class PuzzlesService {
       feedback_message: isCorrect
         ? 'Excellent: c’est le meilleur coup dans cette position.'
         : `Ce n’est pas le meilleur coup. Essaie encore: ${bestMove}.`,
+      wrong_move_explanation: this.buildWrongMoveExplanation({
+        attempted_move_uci: attemptedMove,
+        phase: mistake.phase,
+        severity: mistake.severity,
+        eval_drop_cp: mistake.evalDropCp,
+        is_correct: isCorrect,
+      }),
+      best_move_explanation: this.buildBestMoveExplanation({
+        best_move_uci: bestMove,
+        phase: mistake.phase,
+        severity: mistake.severity,
+      }),
       retry_available: !isCorrect,
     };
   }
@@ -189,5 +206,44 @@ export class PuzzlesService {
         created_at: mistake.createdAt.toISOString(),
       },
     };
+  }
+
+  private buildWrongMoveExplanation(params: {
+    attempted_move_uci: string;
+    phase: string;
+    severity: string;
+    eval_drop_cp: number;
+    is_correct: boolean;
+  }) {
+    if (params.is_correct) {
+      return `Ton coup ${params.attempted_move_uci} correspond déjà au meilleur choix de la position.`;
+    }
+
+    return `Le coup ${params.attempted_move_uci} en ${params.phase} (${params.severity}) laisse passer une idée clé et coûte environ ${params.eval_drop_cp} centipawns.`;
+  }
+
+  private buildBestMoveExplanation(params: {
+    best_move_uci: string;
+    phase: string;
+    severity: string;
+  }) {
+    const phaseTemplate = this.resolvePhaseTemplate(params.phase);
+    return `Le coup ${params.best_move_uci} est meilleur car il ${phaseTemplate}. C’est la ressource la plus solide contre une erreur de type ${params.severity}.`;
+  }
+
+  private resolvePhaseTemplate(phase: string) {
+    if (phase === 'opening') {
+      return 'améliore le développement et le contrôle du centre';
+    }
+
+    if (phase === 'middlegame') {
+      return "augmente l'activité des pièces et l'initiative";
+    }
+
+    if (phase === 'endgame') {
+      return "améliore l'activité du roi et la coordination des pions";
+    }
+
+    return 'améliore la position de façon concrète';
   }
 }

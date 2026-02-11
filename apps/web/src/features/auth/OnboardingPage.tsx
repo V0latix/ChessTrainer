@@ -448,7 +448,13 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
       <div className="grid">
         <Board />
         <Puzzle />
-        <ExplanationPanel />
+        <ExplanationPanel
+          status="incorrect"
+          attemptedMoveUci="h1h2"
+          bestMoveUci="h1g1"
+          wrongMoveExplanation="Exemple: ce coup perd le contrôle des cases clés autour du roi."
+          bestMoveExplanation="Exemple: ce coup améliore l’activité des pièces et neutralise la menace."
+        />
         <ProgressSummary />
       </div>
 

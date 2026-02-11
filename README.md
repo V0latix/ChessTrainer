@@ -109,6 +109,15 @@ npm run dev
   - Puzzle page now runs a session flow (up to 10 puzzles), with explicit progress at the top.
   - Users can continue after solving a puzzle or skip the current puzzle.
   - Session progress updates as users advance (`completed / total`, solved count, skipped count).
+- Move explanations (Story 4.4):
+  - Attempt evaluation now returns two explanation fields:
+    - `wrong_move_explanation`
+    - `best_move_explanation`
+  - Web renders the dedicated `ExplanationPanel` after each evaluated attempt.
+  - Panel explains both sides of the correction:
+    - why the played move is weaker
+    - why the best move is stronger
+  - Includes a short “À retenir” takeaway for fast daily review.
 
 ## Useful Commands
 

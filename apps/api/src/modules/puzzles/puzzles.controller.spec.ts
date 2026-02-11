@@ -161,6 +161,10 @@ describe('PuzzlesController', () => {
       status: 'incorrect',
       feedback_title: 'Presque',
       feedback_message: 'Ce n’est pas le meilleur coup. Essaie encore: h1g1.',
+      wrong_move_explanation:
+        'Le coup h1h2 en endgame (blunder) laisse passer une idée clé et coûte environ 540 centipawns.',
+      best_move_explanation:
+        "Le coup h1g1 est meilleur car il améliore l'activité du roi et la coordination des pions. C’est la ressource la plus solide contre une erreur de type blunder.",
       retry_available: true,
     });
 
@@ -192,6 +196,10 @@ describe('PuzzlesController', () => {
         status: 'incorrect',
         feedback_title: 'Presque',
         feedback_message: 'Ce n’est pas le meilleur coup. Essaie encore: h1g1.',
+        wrong_move_explanation:
+          'Le coup h1h2 en endgame (blunder) laisse passer une idée clé et coûte environ 540 centipawns.',
+        best_move_explanation:
+          "Le coup h1g1 est meilleur car il améliore l'activité du roi et la coordination des pions. C’est la ressource la plus solide contre une erreur de type blunder.",
         retry_available: true,
       },
     });

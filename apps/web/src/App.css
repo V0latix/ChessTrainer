@@ -154,6 +154,11 @@
   align-items: start;
 }
 
+.puzzle-board-column {
+  display: grid;
+  gap: 16px;
+}
+
 .attempt-result {
   margin-top: 10px;
   border: 1px solid var(--border);
@@ -173,6 +178,30 @@
 .attempt-result-incorrect {
   border-color: #875040;
   background: #2a1a14;
+}
+
+.explanation-panel {
+  min-height: 0;
+}
+
+.explanation-block {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0a1020;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.explanation-label {
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.explanation-takeaway {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: #d5def2;
 }
 
 .puzzle-actions {

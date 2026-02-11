@@ -144,6 +144,9 @@ describe('PuzzlesService', () => {
     const findFirst = jest.fn().mockResolvedValue({
       id: 'mistake-1',
       bestMoveUci: 'h1g1',
+      phase: 'endgame',
+      severity: 'blunder',
+      evalDropCp: 540,
     });
 
     const service = new PuzzlesService({
@@ -167,6 +170,10 @@ describe('PuzzlesService', () => {
       feedback_title: 'Bien joué',
       feedback_message:
         'Excellent: c’est le meilleur coup dans cette position.',
+      wrong_move_explanation:
+        'Ton coup h1g1 correspond déjà au meilleur choix de la position.',
+      best_move_explanation:
+        "Le coup h1g1 est meilleur car il améliore l'activité du roi et la coordination des pions. C’est la ressource la plus solide contre une erreur de type blunder.",
       retry_available: false,
     });
 
@@ -178,6 +185,9 @@ describe('PuzzlesService', () => {
       select: {
         id: true,
         bestMoveUci: true,
+        phase: true,
+        severity: true,
+        evalDropCp: true,
       },
     });
   });
@@ -188,6 +198,9 @@ describe('PuzzlesService', () => {
         findFirst: jest.fn().mockResolvedValue({
           id: 'mistake-1',
           bestMoveUci: 'h1g1',
+          phase: 'endgame',
+          severity: 'blunder',
+          evalDropCp: 540,
         }),
       },
     } as any);
@@ -206,6 +219,10 @@ describe('PuzzlesService', () => {
       status: 'incorrect',
       feedback_title: 'Presque',
       feedback_message: 'Ce n’est pas le meilleur coup. Essaie encore: h1g1.',
+      wrong_move_explanation:
+        'Le coup h1h2 en endgame (blunder) laisse passer une idée clé et coûte environ 540 centipawns.',
+      best_move_explanation:
+        "Le coup h1g1 est meilleur car il améliore l'activité du roi et la coordination des pions. C’est la ressource la plus solide contre une erreur de type blunder.",
       retry_available: true,
     });
   });

@@ -38,6 +38,8 @@ export type EvaluatePuzzleAttemptResponse = {
   status: 'correct' | 'incorrect';
   feedback_title: string;
   feedback_message: string;
+  wrong_move_explanation: string;
+  best_move_explanation: string;
   retry_available: boolean;
 };
 

@@ -26,7 +26,7 @@
 #   - optional: Can be completed but not required
 #   - done: Retrospective has been completed
 
-generated: 2026-02-11 17:39
+generated: 2026-02-11 22:45
 project: ChessTrainer
 project_key: chesstrainer
 tracking_system: file-system
@@ -54,11 +54,11 @@ development_status:
   3-4-expose-polling-status-with-progress-and-eta: review
   3-5-enforce-api-contract-and-platform-observability: review
   epic-3-retrospective: optional
-  epic-4: backlog
+  epic-4: in-progress
   4-1-open-mistake-position-as-playable-puzzle: review
   4-2-evaluate-attempt-and-enable-retry: review
   4-3-sequence-puzzles-in-session-flow: review
-  4-4-explain-wrong-move-and-best-move: backlog
+  4-4-explain-wrong-move-and-best-move: review
   4-5-accessibility-hardening-for-puzzle-and-explanation-flow: backlog
   epic-4-retrospective: optional
   epic-5: backlog
