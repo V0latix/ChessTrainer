@@ -51,6 +51,11 @@ npm run dev
   - API endpoint: `POST /imports/chess-com/import-selected`.
   - Only selected game URLs are persisted for the authenticated user.
   - Import summary returns `imported_count`, `already_existing_count`, and `failed_count`.
+- Incremental re-import without duplicates (Story 2.3):
+  - API endpoint: `POST /imports/chess-com/reimport`.
+  - Scans recent archives and inserts only new games for the authenticated user.
+  - Dedup is deterministic using `(userId, gameUrl)`; existing rows are skipped.
+  - Summary returns `scanned_count`, `imported_count`, `already_existing_count`, and `failed_count`.
 
 ## Useful Commands
 

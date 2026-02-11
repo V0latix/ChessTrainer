@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import type { RecentArchiveGame } from '../../integrations/chess-com/chess-com.service';
 import { ChessComService } from '../../integrations/chess-com/chess-com.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 export type ImportSelectedGamesResult = {
   username: string;
@@ -10,6 +11,23 @@ export type ImportSelectedGamesResult = {
   failed_count: number;
   failures: Array<{
     game_url: string;
+    reason: string;
+  }>;
+};
+
+export type ReimportGamesResult = {
+  username: string;
+  scanned_count: number;
+  imported_count: number;
+  already_existing_count: number;
+  failed_count: number;
+  failures: Array<{
+    game_url: string;
+    reason: string;
+  }>;
+  unavailable_periods: Array<{
+    period: string;
+    archive_url: string;
     reason: string;
   }>;
 };
@@ -31,19 +49,72 @@ export class ImportsService {
     selected_game_urls: string[];
     archives_count?: number;
   }): Promise<ImportSelectedGamesResult> {
+    const recentGames = await this.chessComService.fetchRecentArchiveGames(
+      params.username,
+      params.archives_count,
+    );
+
+    const persistence = await this.persistSelectedGames({
+      user_id: params.user_id,
+      username: recentGames.username,
+      selected_game_urls: params.selected_game_urls,
+      games: recentGames.games,
+    });
+
+    return {
+      username: recentGames.username,
+      selected_count: persistence.selected_count,
+      imported_count: persistence.imported_count,
+      already_existing_count: persistence.already_existing_count,
+      failed_count: persistence.failed_count,
+      failures: persistence.failures,
+    };
+  }
+
+  async reimportIncrementally(params: {
+    user_id: string;
+    username: string;
+    archives_count?: number;
+  }): Promise<ReimportGamesResult> {
+    const recentGames = await this.chessComService.fetchRecentArchiveGames(
+      params.username,
+      params.archives_count,
+    );
+
+    const selectedUrls = recentGames.games.map((game) => game.game_url);
+
+    const persistence = await this.persistSelectedGames({
+      user_id: params.user_id,
+      username: recentGames.username,
+      selected_game_urls: selectedUrls,
+      games: recentGames.games,
+    });
+
+    return {
+      username: recentGames.username,
+      scanned_count: selectedUrls.length,
+      imported_count: persistence.imported_count,
+      already_existing_count: persistence.already_existing_count,
+      failed_count: persistence.failed_count,
+      failures: persistence.failures,
+      unavailable_periods: recentGames.unavailable_periods,
+    };
+  }
+
+  private async persistSelectedGames(params: {
+    user_id: string;
+    username: string;
+    selected_game_urls: string[];
+    games: RecentArchiveGame[];
+  }) {
     const selectedUrls = Array.from(
       new Set(
         params.selected_game_urls.map((url) => url.trim()).filter(Boolean),
       ),
     );
 
-    const recentGames = await this.chessComService.fetchRecentArchiveGames(
-      params.username,
-      params.archives_count,
-    );
-
     const gamesByUrl = new Map(
-      recentGames.games.map((game) => [game.game_url, game] as const),
+      params.games.map((game) => [game.game_url, game] as const),
     );
 
     let importedCount = 0;
@@ -82,7 +153,7 @@ export class ImportsService {
           userId: params.user_id,
           provider: 'chess_com',
           gameUrl: game.game_url,
-          chessComUsername: recentGames.username,
+          chessComUsername: params.username,
           period: game.period,
           pgn: game.pgn,
           endTime: game.end_time ? new Date(game.end_time) : null,
@@ -96,7 +167,6 @@ export class ImportsService {
     }
 
     return {
-      username: recentGames.username,
       selected_count: selectedUrls.length,
       imported_count: importedCount,
       already_existing_count: alreadyExistingCount,

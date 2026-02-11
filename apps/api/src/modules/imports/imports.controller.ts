@@ -84,4 +84,35 @@ export class ImportsController {
       },
     };
   }
+
+  @UseGuards(SupabaseAuthGuard)
+  @Post('chess-com/reimport')
+  async reimportChessComGames(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { username?: string; archives_count?: number },
+  ) {
+    const username = body.username?.trim() ?? '';
+
+    if (!username) {
+      throw new BadRequestException('username is required.');
+    }
+
+    const summary = await this.importsService.reimportIncrementally({
+      user_id: user.local_user_id,
+      username,
+      archives_count: body.archives_count,
+    });
+
+    return {
+      data: {
+        username: summary.username,
+        scanned_count: summary.scanned_count,
+        imported_count: summary.imported_count,
+        already_existing_count: summary.already_existing_count,
+        failed_count: summary.failed_count,
+        failures: summary.failures,
+        unavailable_periods: summary.unavailable_periods,
+      },
+    };
+  }
 }

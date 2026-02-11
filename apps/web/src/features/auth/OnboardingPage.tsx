@@ -10,6 +10,8 @@ import {
   listChessComCandidateGames,
   type CandidateGame,
   type ImportSelectedGamesResponse,
+  type ReimportGamesResponse,
+  reimportChessComGames,
 } from '../../lib/chess-com';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from './auth-context';
@@ -30,11 +32,15 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
   const [chessComUsername, setChessComUsername] = useState('');
   const [isFetchingGames, setIsFetchingGames] = useState(false);
   const [isImportingGames, setIsImportingGames] = useState(false);
+  const [isReimportingGames, setIsReimportingGames] = useState(false);
   const [candidateGames, setCandidateGames] = useState<CandidateGame[]>([]);
   const [unavailablePeriods, setUnavailablePeriods] = useState<string[]>([]);
   const [selectedGames, setSelectedGames] = useState<Record<string, boolean>>({});
   const [importSummary, setImportSummary] =
     useState<ImportSelectedGamesResponse | null>(null);
+  const [reimportSummary, setReimportSummary] = useState<ReimportGamesResponse | null>(
+    null,
+  );
 
   const selectedCount = useMemo(
     () => Object.values(selectedGames).filter(Boolean).length,
@@ -109,6 +115,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
     event.preventDefault();
     setLogoutError(null);
     setImportSummary(null);
+    setReimportSummary(null);
 
     if (!session?.access_token) {
       setLogoutError('Session invalide, reconnecte-toi puis réessaie.');
@@ -158,6 +165,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
     }
 
     setIsImportingGames(true);
+    setReimportSummary(null);
 
     try {
       const summary = await importSelectedChessComGames({
@@ -172,6 +180,43 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
       );
     } finally {
       setIsImportingGames(false);
+    }
+  }
+
+  async function handleReimportGames() {
+    setLogoutError(null);
+    setImportSummary(null);
+
+    if (!session?.access_token) {
+      setLogoutError('Session invalide, reconnecte-toi puis réessaie.');
+      return;
+    }
+
+    const username = chessComUsername.trim();
+
+    if (!username) {
+      setLogoutError('Renseigne ton pseudo Chess.com avant la réimportation.');
+      return;
+    }
+
+    setIsReimportingGames(true);
+
+    try {
+      const summary = await reimportChessComGames({
+        accessToken: session.access_token,
+        username,
+      });
+      setReimportSummary(summary);
+      setUnavailablePeriods(
+        summary.unavailable_periods.map((period) => `${period.period} (${period.reason})`),
+      );
+    } catch (error) {
+      setReimportSummary(null);
+      setLogoutError(
+        error instanceof Error ? error.message : 'Réimport des parties impossible.',
+      );
+    } finally {
+      setIsReimportingGames(false);
     }
   }
 
@@ -193,7 +238,13 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           className="logout-button"
           type="button"
           onClick={handleLogout}
-          disabled={isLoggingOut || isDeleting || isFetchingGames || isImportingGames}
+          disabled={
+            isLoggingOut ||
+            isDeleting ||
+            isFetchingGames ||
+            isImportingGames ||
+            isReimportingGames
+          }
         >
           {isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}
         </button>
@@ -229,11 +280,26 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           <button
             className="auth-submit"
             type="submit"
-            disabled={isFetchingGames || isDeleting || isImportingGames}
+            disabled={
+              isFetchingGames || isDeleting || isImportingGames || isReimportingGames
+            }
           >
             {isFetchingGames ? 'Récupération...' : 'Lister mes parties'}
           </button>
         </form>
+
+        <button
+          className="auth-submit import-submit import-submit-secondary"
+          type="button"
+          onClick={handleReimportGames}
+          disabled={
+            isReimportingGames || isDeleting || isFetchingGames || isImportingGames
+          }
+        >
+          {isReimportingGames
+            ? 'Réimport en cours...'
+            : 'Réimporter sans doublons (parties récentes)'}
+        </button>
 
         {candidateGames.length > 0 ? (
           <>
@@ -261,7 +327,9 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
               className="auth-submit import-submit"
               type="button"
               onClick={handleImportSelectedGames}
-              disabled={isImportingGames || isDeleting || isFetchingGames}
+              disabled={
+                isImportingGames || isDeleting || isFetchingGames || isReimportingGames
+              }
             >
               {isImportingGames ? 'Import en cours...' : 'Importer la sélection'}
             </button>
@@ -274,6 +342,16 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
             <p>Succès: {importSummary.imported_count}</p>
             <p>Déjà existantes: {importSummary.already_existing_count}</p>
             <p>Échecs: {importSummary.failed_count}</p>
+          </div>
+        ) : null}
+
+        {reimportSummary ? (
+          <div className="import-summary">
+            <p>Réimport terminé pour {reimportSummary.username}.</p>
+            <p>Parties scannées: {reimportSummary.scanned_count}</p>
+            <p>Nouvelles importées: {reimportSummary.imported_count}</p>
+            <p>Déjà existantes: {reimportSummary.already_existing_count}</p>
+            <p>Échecs: {reimportSummary.failed_count}</p>
           </div>
         ) : null}
 
@@ -306,7 +384,13 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           className="delete-button"
           type="button"
           onClick={handleDeleteAccount}
-          disabled={isDeleting || isLoggingOut || isFetchingGames || isImportingGames}
+          disabled={
+            isDeleting ||
+            isLoggingOut ||
+            isFetchingGames ||
+            isImportingGames ||
+            isReimportingGames
+          }
         >
           {isDeleting ? 'Suppression...' : 'Supprimer mon compte'}
         </button>

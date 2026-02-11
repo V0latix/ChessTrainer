@@ -39,6 +39,19 @@ export type ImportSelectedGamesResponse = {
   }>;
 };
 
+export type ReimportGamesResponse = {
+  username: string;
+  scanned_count: number;
+  imported_count: number;
+  already_existing_count: number;
+  failed_count: number;
+  failures: Array<{
+    game_url: string;
+    reason: string;
+  }>;
+  unavailable_periods: UnavailablePeriod[];
+};
+
 export async function listChessComCandidateGames(
   accessToken: string,
   username: string,
@@ -93,5 +106,33 @@ export async function importSelectedChessComGames(params: {
   }
 
   const payload = (await response.json()) as { data: ImportSelectedGamesResponse };
+  return payload.data;
+}
+
+export async function reimportChessComGames(params: {
+  accessToken: string;
+  username: string;
+}): Promise<ReimportGamesResponse> {
+  if (!env.apiBaseUrl) {
+    throw new Error('VITE_API_BASE_URL is missing.');
+  }
+
+  const response = await fetch(`${env.apiBaseUrl}/imports/chess-com/reimport`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${params.accessToken}`,
+    },
+    body: JSON.stringify({
+      username: params.username,
+    }),
+  });
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(`Chess.com re-import failed (${response.status}): ${responseText}`);
+  }
+
+  const payload = (await response.json()) as { data: ReimportGamesResponse };
   return payload.data;
 }

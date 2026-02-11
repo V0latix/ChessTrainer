@@ -26,6 +26,7 @@ describe('ImportsController', () => {
     const controller = new ImportsController({
       listCandidateGames,
       importSelectedGames: jest.fn(),
+      reimportIncrementally: jest.fn(),
     } as any);
 
     await expect(
@@ -59,6 +60,7 @@ describe('ImportsController', () => {
     const controller = new ImportsController({
       listCandidateGames: jest.fn(),
       importSelectedGames,
+      reimportIncrementally: jest.fn(),
     } as any);
 
     await expect(
@@ -100,10 +102,60 @@ describe('ImportsController', () => {
     });
   });
 
+  it('reimports incrementally and returns inserted/skipped counts', async () => {
+    const reimportIncrementally = jest.fn().mockResolvedValue({
+      username: 'leo',
+      scanned_count: 3,
+      imported_count: 1,
+      already_existing_count: 2,
+      failed_count: 0,
+      failures: [],
+      unavailable_periods: [],
+    });
+
+    const controller = new ImportsController({
+      listCandidateGames: jest.fn(),
+      importSelectedGames: jest.fn(),
+      reimportIncrementally,
+    } as any);
+
+    await expect(
+      controller.reimportChessComGames(
+        {
+          local_user_id: 'local-user-1',
+          supabase_sub: 'supabase-sub-1',
+          email: 'leo@example.com',
+          role: 'user',
+        },
+        {
+          username: 'leo',
+          archives_count: 2,
+        },
+      ),
+    ).resolves.toEqual({
+      data: {
+        username: 'leo',
+        scanned_count: 3,
+        imported_count: 1,
+        already_existing_count: 2,
+        failed_count: 0,
+        failures: [],
+        unavailable_periods: [],
+      },
+    });
+
+    expect(reimportIncrementally).toHaveBeenCalledWith({
+      user_id: 'local-user-1',
+      username: 'leo',
+      archives_count: 2,
+    });
+  });
+
   it('rejects import when selected_game_urls is empty', async () => {
     const controller = new ImportsController({
       listCandidateGames: jest.fn(),
       importSelectedGames: jest.fn(),
+      reimportIncrementally: jest.fn(),
     } as any);
 
     await expect(
@@ -117,6 +169,28 @@ describe('ImportsController', () => {
         {
           username: 'leo',
           selected_game_urls: [],
+        },
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects re-import when username is missing', async () => {
+    const controller = new ImportsController({
+      listCandidateGames: jest.fn(),
+      importSelectedGames: jest.fn(),
+      reimportIncrementally: jest.fn(),
+    } as any);
+
+    await expect(
+      controller.reimportChessComGames(
+        {
+          local_user_id: 'local-user-1',
+          supabase_sub: 'supabase-sub-1',
+          email: 'leo@example.com',
+          role: 'user',
+        },
+        {
+          username: ' ',
         },
       ),
     ).rejects.toThrow(BadRequestException);

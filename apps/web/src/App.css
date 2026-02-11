@@ -264,6 +264,12 @@
   margin-top: 12px;
 }
 
+.import-submit-secondary {
+  background: #0a1020;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
 .import-summary {
   margin-top: 12px;
   border: 1px solid #2d4a2f;
