@@ -1,0 +1,102 @@
+import { PuzzlesService } from './puzzles.service';
+
+describe('PuzzlesService', () => {
+  it('returns a puzzle projection from the most recent critical mistake', async () => {
+    const findFirst = jest.fn().mockResolvedValue({
+      id: 'mistake-1',
+      gameId: 'game-1',
+      fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
+      phase: 'endgame',
+      severity: 'blunder',
+      category: 'endgame_blunder',
+      playedMoveUci: 'h1h2',
+      bestMoveUci: 'h1g1',
+      evalDropCp: 540,
+      plyIndex: 60,
+      createdAt: new Date('2026-02-11T00:00:00.000Z'),
+      game: {
+        gameUrl: 'https://www.chess.com/game/live/123',
+        chessComUsername: 'leo',
+        period: '2026-02',
+        timeClass: 'rapid',
+      },
+    });
+
+    const service = new PuzzlesService({
+      criticalMistake: {
+        findFirst,
+      },
+    } as any);
+
+    await expect(
+      service.getNextPuzzle({
+        user_id: 'local-user-1',
+      }),
+    ).resolves.toEqual({
+      puzzle_id: 'mistake-1',
+      source: 'critical_mistake',
+      fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
+      side_to_move: 'black',
+      objective: 'Trouve le meilleur coup pour les noirs dans cette position.',
+      context: {
+        game_id: 'game-1',
+        game_url: 'https://www.chess.com/game/live/123',
+        chess_com_username: 'leo',
+        period: '2026-02',
+        time_class: 'rapid',
+        phase: 'endgame',
+        severity: 'blunder',
+        category: 'endgame_blunder',
+        played_move_uci: 'h1h2',
+        best_move_uci: 'h1g1',
+        eval_drop_cp: 540,
+        ply_index: 60,
+        created_at: '2026-02-11T00:00:00.000Z',
+      },
+    });
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        userId: 'local-user-1',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        id: true,
+        gameId: true,
+        fen: true,
+        phase: true,
+        severity: true,
+        category: true,
+        playedMoveUci: true,
+        bestMoveUci: true,
+        evalDropCp: true,
+        plyIndex: true,
+        createdAt: true,
+        game: {
+          select: {
+            gameUrl: true,
+            chessComUsername: true,
+            period: true,
+            timeClass: true,
+          },
+        },
+      },
+    });
+  });
+
+  it('returns null when no critical mistake exists for the user', async () => {
+    const service = new PuzzlesService({
+      criticalMistake: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    } as any);
+
+    await expect(
+      service.getNextPuzzle({
+        user_id: 'local-user-1',
+      }),
+    ).resolves.toBeNull();
+  });
+});

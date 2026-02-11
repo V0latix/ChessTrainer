@@ -93,6 +93,12 @@ npm run dev
   - API captures controller/runtime exceptions through Sentry when `SENTRY_DSN` is configured.
   - Worker emits structured JSON logs for bootstrap/batch/job events and captures failures through Sentry (`SENTRY_DSN` or `WORKER_SENTRY_DSN`).
   - Web initializes optional Sentry capture with environment/release metadata (`VITE_SENTRY_*`) and captures global runtime errors.
+- Mistake position as playable puzzle (Story 4.1):
+  - API endpoint: `GET /puzzles/next` (authenticated).
+  - Returns the latest critical mistake as a puzzle payload (`fen`, `side_to_move`, `objective`, contextual metadata).
+  - New protected web route: `/puzzle`.
+  - Puzzle page fetches and renders the position on an interactive board, plus objective/context panel.
+  - If no analyzed mistake exists yet, the page displays an explicit empty state.
 
 ## Useful Commands
 

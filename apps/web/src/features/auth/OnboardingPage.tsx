@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
 import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
@@ -422,6 +422,9 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
         <div>
           <h1>ChessTrainer</h1>
           <p>Bienvenue {session?.user.email ?? 'joueur'}. Onboarding authentifié prêt.</p>
+          <p className="hero-link-row">
+            <Link to="/puzzle">Ouvrir un puzzle basé sur mes erreurs</Link>
+          </p>
         </div>
         <button
           className="logout-button"

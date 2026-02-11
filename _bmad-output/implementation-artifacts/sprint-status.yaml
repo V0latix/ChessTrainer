@@ -55,7 +55,7 @@ development_status:
   3-5-enforce-api-contract-and-platform-observability: review
   epic-3-retrospective: optional
   epic-4: backlog
-  4-1-open-mistake-position-as-playable-puzzle: backlog
+  4-1-open-mistake-position-as-playable-puzzle: review
   4-2-evaluate-attempt-and-enable-retry: backlog
   4-3-sequence-puzzles-in-session-flow: backlog
   4-4-explain-wrong-move-and-best-move: backlog

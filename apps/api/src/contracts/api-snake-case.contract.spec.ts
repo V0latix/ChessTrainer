@@ -4,6 +4,7 @@ import { AppService } from '../app.service';
 import { AnalysisJobsController } from '../modules/analysis-jobs/analysis-jobs.controller';
 import { AuthController } from '../modules/auth/auth.controller';
 import { ImportsController } from '../modules/imports/imports.controller';
+import { PuzzlesController } from '../modules/puzzles/puzzles.controller';
 
 const SNAKE_CASE_KEY = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 
@@ -208,5 +209,42 @@ describe('API snake_case contract', () => {
       'analysis-1',
     );
     expectSnakeCaseKeys(statusResult);
+  });
+
+  it('enforces snake_case keys for puzzle payloads', async () => {
+    const controller = new PuzzlesController({
+      getNextPuzzle: jest.fn().mockResolvedValue({
+        puzzle_id: 'mistake-1',
+        source: 'critical_mistake',
+        fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
+        side_to_move: 'black',
+        objective:
+          'Trouve le meilleur coup pour les noirs dans cette position.',
+        context: {
+          game_id: 'game-1',
+          game_url: 'https://www.chess.com/game/live/123',
+          chess_com_username: 'leo',
+          period: '2026-02',
+          time_class: 'rapid',
+          phase: 'endgame',
+          severity: 'blunder',
+          category: 'endgame_blunder',
+          played_move_uci: 'h1h2',
+          best_move_uci: 'h1g1',
+          eval_drop_cp: 540,
+          ply_index: 60,
+          created_at: '2026-02-11T00:00:00.000Z',
+        },
+      }),
+    } as any);
+
+    const puzzleResult = await controller.getNextPuzzle({
+      local_user_id: 'user-1',
+      supabase_sub: 'sub-1',
+      email: 'leo@example.com',
+      role: 'user',
+    });
+
+    expectSnakeCaseKeys(puzzleResult);
   });
 });
