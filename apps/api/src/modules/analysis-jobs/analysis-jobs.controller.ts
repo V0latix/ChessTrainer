@@ -2,6 +2,8 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -39,6 +41,28 @@ export class AnalysisJobsController {
         skipped_count: result.skipped_count,
         jobs: result.jobs,
       },
+    };
+  }
+
+  @UseGuards(SupabaseAuthGuard)
+  @Get('jobs/:job_id')
+  async getAnalysisJobStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('job_id') jobId: string,
+  ) {
+    const normalizedJobId = jobId.trim();
+
+    if (!normalizedJobId) {
+      throw new BadRequestException('job_id is required.');
+    }
+
+    const result = await this.analysisJobsService.getJobStatus({
+      user_id: user.local_user_id,
+      job_id: normalizedJobId,
+    });
+
+    return {
+      data: result,
     };
   }
 }

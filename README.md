@@ -83,6 +83,10 @@ npm run dev
   - Worker extracts `critical_mistakes` when evaluation drop is `>= 200cp` (`>= 2.0` pawns), with severity and phase categories.
   - Mistakes are persisted per analyzed game and deduplicated per `(analysis_job_id, ply_index)`.
   - User aggregates are regenerated from recent completed jobs into `user_mistake_summaries`.
+- Analysis status polling with progress + ETA (Story 3.4):
+  - API endpoint: `GET /analysis/jobs/:job_id`.
+  - Returns explicit per-job execution state (`queued`/`running`/`completed`/`failed`) with `progress_percent` and `eta_seconds`.
+  - Onboarding polls tracked jobs every 2s, shows a visible progress bar + ETA, and displays explicit completion state when all tracked jobs are terminal.
 
 ## Useful Commands
 

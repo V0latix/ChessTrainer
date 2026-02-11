@@ -1,5 +1,5 @@
 import { AnalysisJobStatus } from '@prisma/client';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AnalysisJobsService } from './analysis-jobs.service';
 
 describe('AnalysisJobsService', () => {
@@ -147,5 +147,98 @@ describe('AnalysisJobsService', () => {
         user_id: 'local-user-1',
       }),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('returns analysis job status with progress and eta details', async () => {
+    const findFirst = jest.fn().mockResolvedValue({
+      id: 'analysis-1',
+      gameId: 'game-1',
+      status: AnalysisJobStatus.running,
+      progressPercent: 42,
+      etaSeconds: 18,
+      startedAt: new Date('2026-02-11T00:00:00.000Z'),
+      completedAt: null,
+      errorCode: null,
+      errorMessage: null,
+      updatedAt: new Date('2026-02-11T00:01:00.000Z'),
+    });
+
+    const service = new AnalysisJobsService(
+      {
+        game: {
+          findMany: jest.fn(),
+        },
+        analysisJob: {
+          findMany: jest.fn(),
+          create: jest.fn(),
+          findFirst,
+        },
+      } as any,
+      {
+        enqueueAnalysis: jest.fn(),
+      } as any,
+    );
+
+    await expect(
+      service.getJobStatus({
+        user_id: 'local-user-1',
+        job_id: 'analysis-1',
+      }),
+    ).resolves.toEqual({
+      job_id: 'analysis-1',
+      game_id: 'game-1',
+      status: AnalysisJobStatus.running,
+      progress_percent: 42,
+      eta_seconds: 18,
+      started_at: '2026-02-11T00:00:00.000Z',
+      completed_at: null,
+      error_code: null,
+      error_message: null,
+      updated_at: '2026-02-11T00:01:00.000Z',
+    });
+
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'analysis-1',
+        userId: 'local-user-1',
+      },
+      select: {
+        id: true,
+        gameId: true,
+        status: true,
+        progressPercent: true,
+        etaSeconds: true,
+        startedAt: true,
+        completedAt: true,
+        errorCode: true,
+        errorMessage: true,
+        updatedAt: true,
+      },
+    });
+  });
+
+  it('throws not found when analysis job does not belong to user', async () => {
+    const service = new AnalysisJobsService(
+      {
+        game: {
+          findMany: jest.fn(),
+        },
+        analysisJob: {
+          findMany: jest.fn(),
+          create: jest.fn(),
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+      } as any,
+      {
+        enqueueAnalysis: jest.fn(),
+      } as any,
+    );
+
+    await expect(
+      service.getJobStatus({
+        user_id: 'local-user-1',
+        job_id: 'analysis-unknown',
+      }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

@@ -12,6 +12,19 @@ export type EnqueueAnalysisJobsResponse = {
   }>;
 };
 
+export type AnalysisJobStatusResponse = {
+  job_id: string;
+  game_id: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  progress_percent: number;
+  eta_seconds: number | null;
+  started_at: string | null;
+  completed_at: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  updated_at: string;
+};
+
 export async function enqueueAnalysisJobs(params: {
   accessToken: string;
   gameIds?: string[];
@@ -40,5 +53,32 @@ export async function enqueueAnalysisJobs(params: {
   }
 
   const payload = (await response.json()) as { data: EnqueueAnalysisJobsResponse };
+  return payload.data;
+}
+
+export async function getAnalysisJobStatus(params: {
+  accessToken: string;
+  jobId: string;
+}): Promise<AnalysisJobStatusResponse> {
+  if (!env.apiBaseUrl) {
+    throw new Error('VITE_API_BASE_URL is missing.');
+  }
+
+  const response = await fetch(
+    `${env.apiBaseUrl}/analysis/jobs/${encodeURIComponent(params.jobId)}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${params.accessToken}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(`Analysis status fetch failed (${response.status}): ${responseText}`);
+  }
+
+  const payload = (await response.json()) as { data: AnalysisJobStatusResponse };
   return payload.data;
 }

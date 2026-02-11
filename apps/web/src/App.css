@@ -283,6 +283,12 @@
   color: #9bd2a9;
 }
 
+.analysis-progress {
+  margin: 4px 0 6px;
+  width: 100%;
+  max-width: 360px;
+}
+
 .auth-message {
   margin-top: 12px;
 }

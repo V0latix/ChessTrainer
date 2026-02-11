@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
@@ -7,6 +7,8 @@ import { Puzzle } from '../../components/Puzzle/Puzzle';
 import { deleteAccountFromApi } from '../../lib/account-delete';
 import {
   enqueueAnalysisJobs,
+  getAnalysisJobStatus,
+  type AnalysisJobStatusResponse,
   type EnqueueAnalysisJobsResponse,
 } from '../../lib/analysis-jobs';
 import {
@@ -48,11 +50,143 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
   );
   const [analysisSummary, setAnalysisSummary] =
     useState<EnqueueAnalysisJobsResponse | null>(null);
+  const [trackedAnalysisJobIds, setTrackedAnalysisJobIds] = useState<string[]>([]);
+  const [analysisJobStatuses, setAnalysisJobStatuses] = useState<
+    Record<string, AnalysisJobStatusResponse>
+  >({});
+  const [isPollingAnalysisStatus, setIsPollingAnalysisStatus] = useState(false);
 
   const selectedCount = useMemo(
     () => Object.values(selectedGames).filter(Boolean).length,
     [selectedGames],
   );
+  const analysisStatusItems = useMemo(
+    () =>
+      trackedAnalysisJobIds
+        .map((jobId) => analysisJobStatuses[jobId])
+        .filter((status): status is AnalysisJobStatusResponse => Boolean(status)),
+    [trackedAnalysisJobIds, analysisJobStatuses],
+  );
+  const analysisAverageProgress = useMemo(() => {
+    if (analysisStatusItems.length === 0) {
+      return 0;
+    }
+
+    const total = analysisStatusItems.reduce(
+      (accumulator, status) => accumulator + status.progress_percent,
+      0,
+    );
+
+    return Math.round(total / analysisStatusItems.length);
+  }, [analysisStatusItems]);
+  const analysisEtaSeconds = useMemo(() => {
+    const availableEta = analysisStatusItems
+      .map((status) => status.eta_seconds)
+      .filter((eta): eta is number => eta !== null);
+
+    if (availableEta.length === 0) {
+      return null;
+    }
+
+    return Math.max(...availableEta);
+  }, [analysisStatusItems]);
+  const analysisCompletedCount = useMemo(
+    () => analysisStatusItems.filter((status) => status.status === 'completed').length,
+    [analysisStatusItems],
+  );
+  const analysisFailedCount = useMemo(
+    () => analysisStatusItems.filter((status) => status.status === 'failed').length,
+    [analysisStatusItems],
+  );
+  const isAnalysisTrackingComplete = useMemo(() => {
+    if (trackedAnalysisJobIds.length === 0) {
+      return false;
+    }
+
+    if (analysisStatusItems.length !== trackedAnalysisJobIds.length) {
+      return false;
+    }
+
+    return analysisStatusItems.every(
+      (status) => status.status === 'completed' || status.status === 'failed',
+    );
+  }, [trackedAnalysisJobIds, analysisStatusItems]);
+
+  useEffect(() => {
+    if (!session?.access_token || trackedAnalysisJobIds.length === 0) {
+      setIsPollingAnalysisStatus(false);
+      return;
+    }
+
+    let isDisposed = false;
+    let nextPollTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const runPoll = async () => {
+      try {
+        const statuses = await Promise.all(
+          trackedAnalysisJobIds.map((jobId) =>
+            getAnalysisJobStatus({
+              accessToken: session.access_token,
+              jobId,
+            }),
+          ),
+        );
+
+        if (isDisposed) {
+          return;
+        }
+
+        setAnalysisJobStatuses((previous) => {
+          const updated = { ...previous };
+          for (const status of statuses) {
+            updated[status.job_id] = status;
+          }
+          return updated;
+        });
+
+        const allTerminal = statuses.every(
+          (status) => status.status === 'completed' || status.status === 'failed',
+        );
+
+        if (allTerminal) {
+          setIsPollingAnalysisStatus(false);
+          return;
+        }
+
+        nextPollTimer = setTimeout(() => {
+          void runPoll();
+        }, 2000);
+      } catch (error) {
+        if (isDisposed) {
+          return;
+        }
+
+        setIsPollingAnalysisStatus(false);
+        setLogoutError(
+          error instanceof Error
+            ? error.message
+            : 'Impossible de rafraîchir le statut des analyses.',
+        );
+      }
+    };
+
+    setIsPollingAnalysisStatus(true);
+    void runPoll();
+
+    return () => {
+      isDisposed = true;
+      if (nextPollTimer) {
+        clearTimeout(nextPollTimer);
+      }
+    };
+  }, [session?.access_token, trackedAnalysisJobIds]);
+
+  function resetAnalysisTracking() {
+    setAnalysisSummary(null);
+    setTrackedAnalysisJobIds([]);
+    setAnalysisJobStatuses({});
+    setIsPollingAnalysisStatus(false);
+  }
 
   async function handleLogout() {
     setLogoutError(null);
@@ -123,7 +257,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
     setLogoutError(null);
     setImportSummary(null);
     setReimportSummary(null);
-    setAnalysisSummary(null);
+    resetAnalysisTracking();
 
     if (!session?.access_token) {
       setLogoutError('Session invalide, reconnecte-toi puis réessaie.');
@@ -174,7 +308,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
 
     setIsImportingGames(true);
     setReimportSummary(null);
-    setAnalysisSummary(null);
+    resetAnalysisTracking();
 
     try {
       const summary = await importSelectedChessComGames({
@@ -195,7 +329,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
   async function handleReimportGames() {
     setLogoutError(null);
     setImportSummary(null);
-    setAnalysisSummary(null);
+    resetAnalysisTracking();
 
     if (!session?.access_token) {
       setLogoutError('Session invalide, reconnecte-toi puis réessaie.');
@@ -239,14 +373,34 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
     }
 
     setIsEnqueuingAnalysis(true);
+    resetAnalysisTracking();
 
     try {
       const summary = await enqueueAnalysisJobs({
         accessToken: session.access_token,
       });
       setAnalysisSummary(summary);
+      setTrackedAnalysisJobIds(summary.jobs.map((job) => job.job_id));
+      setAnalysisJobStatuses(
+        summary.jobs.reduce<Record<string, AnalysisJobStatusResponse>>((accumulator, job) => {
+          accumulator[job.job_id] = {
+            job_id: job.job_id,
+            game_id: job.game_id,
+            status: job.status,
+            progress_percent: 0,
+            eta_seconds: null,
+            started_at: null,
+            completed_at: null,
+            error_code: null,
+            error_message: null,
+            updated_at: job.created_at,
+          };
+
+          return accumulator;
+        }, {}),
+      );
     } catch (error) {
-      setAnalysisSummary(null);
+      resetAnalysisTracking();
       setLogoutError(
         error instanceof Error ? error.message : 'Mise en file des analyses impossible.',
       );
@@ -417,6 +571,30 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
             <p>Analyse lancée.</p>
             <p>Jobs créés: {analysisSummary.enqueued_count}</p>
             <p>Jobs ignorés (déjà en cours): {analysisSummary.skipped_count}</p>
+            {trackedAnalysisJobIds.length > 0 ? (
+              <>
+                <p>
+                  Suivi des jobs: {analysisStatusItems.length}/{trackedAnalysisJobIds.length}
+                </p>
+                <p>Progression moyenne: {analysisAverageProgress}%</p>
+                <progress
+                  className="analysis-progress"
+                  value={analysisAverageProgress}
+                  max={100}
+                  aria-label="Progression moyenne de l’analyse"
+                />
+                <p>
+                  ETA: {analysisEtaSeconds === null ? 'calcul en cours...' : `${analysisEtaSeconds}s`}
+                </p>
+                <p>
+                  Jobs terminés: {analysisCompletedCount} • Échecs: {analysisFailedCount}
+                </p>
+                {isAnalysisTrackingComplete ? (
+                  <p>Toutes les analyses suivies sont terminées.</p>
+                ) : null}
+                {isPollingAnalysisStatus ? <p>Suivi en cours...</p> : null}
+              </>
+            ) : null}
           </div>
         ) : null}
 

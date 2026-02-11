@@ -8,6 +8,7 @@ const {
   signOutMock,
   deleteAccountFromApiMock,
   enqueueAnalysisJobsMock,
+  getAnalysisJobStatusMock,
   listChessComCandidateGamesMock,
   importSelectedChessComGamesMock,
   reimportChessComGamesMock,
@@ -16,6 +17,7 @@ const {
     signOutMock: vi.fn(),
     deleteAccountFromApiMock: vi.fn(),
     enqueueAnalysisJobsMock: vi.fn(),
+    getAnalysisJobStatusMock: vi.fn(),
     listChessComCandidateGamesMock: vi.fn(),
     importSelectedChessComGamesMock: vi.fn(),
     reimportChessComGamesMock: vi.fn(),
@@ -41,6 +43,7 @@ vi.mock('../../lib/account-delete', () => {
 vi.mock('../../lib/analysis-jobs', () => {
   return {
     enqueueAnalysisJobs: enqueueAnalysisJobsMock,
+    getAnalysisJobStatus: getAnalysisJobStatusMock,
   };
 });
 
@@ -72,6 +75,7 @@ describe('OnboardingPage', () => {
     signOutMock.mockReset();
     deleteAccountFromApiMock.mockReset();
     enqueueAnalysisJobsMock.mockReset();
+    getAnalysisJobStatusMock.mockReset();
     listChessComCandidateGamesMock.mockReset();
     importSelectedChessComGamesMock.mockReset();
     reimportChessComGamesMock.mockReset();
@@ -258,7 +262,27 @@ describe('OnboardingPage', () => {
     enqueueAnalysisJobsMock.mockResolvedValue({
       enqueued_count: 4,
       skipped_count: 1,
-      jobs: [],
+      jobs: [
+        {
+          job_id: 'analysis-1',
+          game_id: 'game-1',
+          status: 'queued',
+          queue_job_id: 'queue-1',
+          created_at: '2026-02-11T00:00:00.000Z',
+        },
+      ],
+    });
+    getAnalysisJobStatusMock.mockResolvedValue({
+      job_id: 'analysis-1',
+      game_id: 'game-1',
+      status: 'completed',
+      progress_percent: 100,
+      eta_seconds: 0,
+      started_at: '2026-02-11T00:00:00.000Z',
+      completed_at: '2026-02-11T00:00:10.000Z',
+      error_code: null,
+      error_message: null,
+      updated_at: '2026-02-11T00:00:10.000Z',
     });
 
     render(
@@ -275,12 +299,23 @@ describe('OnboardingPage', () => {
       expect(enqueueAnalysisJobsMock).toHaveBeenCalledWith({
         accessToken: 'access-token-1',
       });
+      expect(getAnalysisJobStatusMock).toHaveBeenCalledWith({
+        accessToken: 'access-token-1',
+        jobId: 'analysis-1',
+      });
       expect(screen.getByText(/Analyse lancée/i)).toBeInTheDocument();
     });
 
     expect(screen.getByText(/Jobs créés: 4/i)).toBeInTheDocument();
     expect(
       screen.getByText(/Jobs ignorés \(déjà en cours\): 1/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Progression moyenne: 100%/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('progressbar', { name: /progression moyenne de l’analyse/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Toutes les analyses suivies sont terminées./i),
     ).toBeInTheDocument();
   });
 
