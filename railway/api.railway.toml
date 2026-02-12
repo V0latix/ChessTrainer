@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+# Important: Prisma Client must be generated during build (Railway builds from scratch).
+buildCommand = "npm ci --include=dev && npm run prisma:generate -w @chesstrainer/api && npm run build -w @chesstrainer/api"
+
+[deploy]
+# Staging-friendly: keep DB schema in sync on deploy (Prisma db push).
+preDeployCommand = ["npm run prisma:db:push -w @chesstrainer/api"]
+startCommand = "npm run start:prod -w @chesstrainer/api"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+
