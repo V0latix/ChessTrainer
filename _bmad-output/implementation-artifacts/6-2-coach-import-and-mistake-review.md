@@ -1,6 +1,6 @@
 # Story 6.2: Coach Import and Mistake Review
 
-Status: review
+Status: done
 
 ## Story
 
