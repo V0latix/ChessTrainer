@@ -26,7 +26,7 @@
 #   - optional: Can be completed but not required
 #   - done: Retrospective has been completed
 
-generated: 2026-02-12 10:16
+generated: 2026-02-12 10:25
 project: ChessTrainer
 project_key: chesstrainer
 tracking_system: file-system
@@ -70,4 +70,4 @@ development_status:
   epic-6: in-progress
   6-1-coach-access-to-student-review-context: review
   6-2-coach-import-and-mistake-review: review
-  epic-6-retrospective: optional
+  epic-6-retrospective: done
