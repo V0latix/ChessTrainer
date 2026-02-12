@@ -12,12 +12,14 @@ const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'] as const;
 
 const PIECE_SYMBOLS: Record<string, string> = {
-  wp: '♙',
-  wn: '♘',
-  wb: '♗',
-  wr: '♖',
-  wq: '♕',
-  wk: '♔',
+  // Use the "black" chess glyphs for both sides (they're solid in most fonts),
+  // then color via CSS based on piece color.
+  wp: '♟',
+  wn: '♞',
+  wb: '♝',
+  wr: '♜',
+  wq: '♛',
+  wk: '♚',
   bp: '♟',
   bn: '♞',
   bb: '♝',
@@ -123,6 +125,7 @@ export function Board({
           const symbol = pieceKey ? PIECE_SYMBOLS[pieceKey] : '';
           const pieceLabel = pieceKey ? PIECE_LABELS[pieceKey] : null;
           const isSelected = selectedSquare === item.square;
+          const pieceColor = item.piece?.color ?? null;
 
           return (
             <button
@@ -133,6 +136,7 @@ export function Board({
                 item.isLightSquare ? 'board-square-light' : 'board-square-dark',
                 isSelected ? 'board-square-selected' : '',
                 isDisabled ? 'board-square-disabled' : '',
+                pieceColor ? `board-square-has-piece board-square-has-piece-${pieceColor}` : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -143,7 +147,19 @@ export function Board({
               }`}
               aria-pressed={isSelected}
             >
-              {symbol}
+              {symbol ? (
+                <span
+                  className={[
+                    'board-piece',
+                    pieceColor ? `board-piece-${pieceColor}` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-hidden="true"
+                >
+                  {symbol}
+                </span>
+              ) : null}
             </button>
           );
         })}
