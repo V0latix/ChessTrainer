@@ -17,7 +17,9 @@
     "prisma": "6.17.1"
   },
   "scripts": {
-    "dev": "npm run dev --workspaces --if-present",
+    "dev": "npm -w apps/api run prisma:generate --if-present && npm run dev:all",
+    "dev:all": "npm run dev --workspaces --if-present",
+    "dev:web": "npm -w apps/web run dev",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

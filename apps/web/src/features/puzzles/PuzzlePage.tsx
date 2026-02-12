@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout/AppLayout';
 import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
 import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
@@ -226,7 +227,8 @@ export function PuzzlePage() {
   ]);
 
   return (
-    <main className="app-shell">
+    <AppLayout>
+      <main className="app-shell">
       <header className="hero">
         <h1>Session de puzzles</h1>
         <p>Rejoue une séquence de positions critiques issues de tes parties.</p>
@@ -398,6 +400,7 @@ export function PuzzlePage() {
           </section>
         </div>
       ) : null}
-    </main>
+      </main>
+    </AppLayout>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout/AppLayout';
 import {
   getCoachStudents,
   readSelectedCoachContext,
@@ -135,7 +136,8 @@ export function CoachContextPage() {
   }, [selectedContext, students]);
 
   return (
-    <main className="app-shell">
+    <AppLayout>
+      <main className="app-shell">
       <header className="hero">
         <h1>Contexte Coach</h1>
         <p>Sélectionne un élève autorisé avant d’ouvrir son espace de review.</p>
@@ -214,6 +216,7 @@ export function CoachContextPage() {
           </ul>
         </section>
       ) : null}
-    </main>
+      </main>
+    </AppLayout>
   );
 }

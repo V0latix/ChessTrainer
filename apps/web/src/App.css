@@ -26,6 +26,123 @@
   color: var(--text);
 }
 
+.app-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  max-width: 1440px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+.app-layout-main {
+  min-width: 0;
+}
+
+.app-sidebar {
+  border-right: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(13, 19, 36, 0.9) 0%, rgba(5, 7, 15, 0.95) 100%);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+
+.app-sidebar-inner {
+  padding: 18px 14px;
+}
+
+.app-nav-root {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(10, 16, 32, 0.6);
+  padding: 12px;
+}
+
+.app-nav-root-summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.app-nav-root summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-nav {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.app-nav-link {
+  display: block;
+  padding: 10px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: #c5cede;
+  text-decoration: none;
+}
+
+.app-nav-link:hover {
+  background: rgba(123, 179, 255, 0.10);
+  border-color: rgba(123, 179, 255, 0.25);
+  color: var(--text);
+}
+
+.app-nav-link:focus-visible {
+  border-color: #f6de82;
+}
+
+.app-nav-link-active {
+  background: rgba(123, 179, 255, 0.14);
+  border-color: rgba(123, 179, 255, 0.35);
+  color: var(--text);
+}
+
+.app-nav-section {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(13, 19, 36, 0.7);
+}
+
+.app-nav-section-summary {
+  cursor: pointer;
+  list-style: none;
+  color: #d5def2;
+  font-weight: 600;
+}
+
+.app-nav-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-nav-section-links {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.app-sidebar-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .app-sidebar {
+    position: relative;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
 .hero {
   margin-bottom: 24px;
 }

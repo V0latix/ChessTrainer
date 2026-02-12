@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout/AppLayout';
 import {
   deleteStoredDatasets,
   getDataInventory,
@@ -133,7 +134,8 @@ export function DataInventoryPage() {
   }
 
   return (
-    <main className="app-shell">
+    <AppLayout>
+      <main className="app-shell">
       <header className="hero">
         <h1>Inventaire des données</h1>
         <p>Transparence sur les données stockées pour ton compte.</p>
@@ -290,6 +292,7 @@ export function DataInventoryPage() {
           </section>
         </section>
       ) : null}
-    </main>
+      </main>
+    </AppLayout>
   );
 }

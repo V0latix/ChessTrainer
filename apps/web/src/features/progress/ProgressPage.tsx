@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout/AppLayout';
 import { getProgressSummary, type ProgressSummaryResponse } from '../../lib/progress';
 import { useAuth } from '../auth/auth-context';
 
@@ -71,7 +72,8 @@ export function ProgressPage() {
   }, [summary]);
 
   return (
-    <main className="app-shell">
+    <AppLayout>
+      <main className="app-shell">
       <header className="hero">
         <h1>Résumé de progression</h1>
         <p>Vue compacte de tes sessions récentes et de tes motifs d’erreurs.</p>
@@ -144,6 +146,7 @@ export function ProgressPage() {
           </article>
         </section>
       ) : null}
-    </main>
+      </main>
+    </AppLayout>
   );
 }

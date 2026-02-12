@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout/AppLayout';
 import { getProgressTrends, type ProgressTrendsResponse } from '../../lib/progress';
 import { useAuth } from '../auth/auth-context';
 
@@ -70,7 +71,8 @@ export function ProgressTrendsPage() {
   }, [session?.access_token]);
 
   return (
-    <main className="app-shell">
+    <AppLayout>
+      <main className="app-shell">
       <header className="hero">
         <h1>Tendances d’erreurs</h1>
         <p>Classement des motifs récurrents et évolution récente.</p>
@@ -132,6 +134,7 @@ export function ProgressTrendsPage() {
           )}
         </section>
       ) : null}
-    </main>
+      </main>
+    </AppLayout>
   );
 }

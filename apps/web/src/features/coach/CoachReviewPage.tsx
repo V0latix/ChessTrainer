@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout/AppLayout';
 import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
 import {
@@ -117,7 +118,8 @@ export function CoachReviewPage() {
   }
 
   return (
-    <main className="app-shell">
+    <AppLayout>
+      <main className="app-shell">
       <header className="hero">
         <h1>Coach Review</h1>
         <p>Importe et revois les erreurs clés de l’élève sélectionné.</p>
@@ -261,6 +263,7 @@ export function CoachReviewPage() {
           ) : null}
         </div>
       ) : null}
-    </main>
+      </main>
+    </AppLayout>
   );
 }

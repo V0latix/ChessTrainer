@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { AppLayout } from '../../components/AppLayout/AppLayout';
 import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
 import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
@@ -28,7 +29,9 @@ type OnboardingPageProps = {
 
 export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { session } = useAuth();
+  const importZoneRef = useRef<HTMLElement | null>(null);
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -180,6 +183,19 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
       }
     };
   }, [session?.access_token, trackedAnalysisJobIds]);
+
+  useEffect(() => {
+    if (location.hash !== '#import') {
+      return;
+    }
+
+    const target = importZoneRef.current;
+    if (!target || typeof target.scrollIntoView !== 'function') {
+      return;
+    }
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [location.hash]);
 
   function resetAnalysisTracking() {
     setAnalysisSummary(null);
@@ -417,24 +433,8 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
   }
 
   return (
-    <main className="app-shell">
-      <header className="hero hero-row">
-        <div>
-          <h1>ChessTrainer</h1>
-          <p>Bienvenue {session?.user.email ?? 'joueur'}. Onboarding authentifié prêt.</p>
-          <p className="hero-link-row">
-            <Link to="/puzzle">Ouvrir un puzzle basé sur mes erreurs</Link>
-          </p>
-          <p className="hero-link-row">
-            <Link to="/progress">Voir mon résumé de progression</Link>
-          </p>
-          <p className="hero-link-row">
-            <Link to="/data/inventory">Voir l’inventaire des données</Link>
-          </p>
-          <p className="hero-link-row">
-            <Link to="/coach/context">Espace coach (contexte élève)</Link>
-          </p>
-        </div>
+    <AppLayout
+      sidebarFooter={
         <button
           className="logout-button"
           type="button"
@@ -450,7 +450,18 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
         >
           {isLoggingOut ? 'Déconnexion...' : 'Se déconnecter'}
         </button>
-      </header>
+      }
+    >
+      <main className="app-shell">
+        <header className="hero">
+          <h1>ChessTrainer</h1>
+          <p>
+            Bienvenue {session?.user.email ?? 'joueur'}. Onboarding authentifié prêt.
+          </p>
+          <p className="hero-link-row">
+            <Link to="/puzzle">Ouvrir un puzzle basé sur mes erreurs</Link>
+          </p>
+        </header>
 
       {logoutError ? <p className="auth-message auth-message-error">{logoutError}</p> : null}
 
@@ -467,7 +478,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
         <ProgressSummary />
       </div>
 
-      <section className="import-zone">
+      <section ref={importZoneRef} id="import" className="import-zone">
         <h2>Importer depuis Chess.com</h2>
         <p>Récupère tes parties récentes pour choisir celles à importer.</p>
 
@@ -658,5 +669,6 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
         </button>
       </section>
     </main>
+    </AppLayout>
   );
 }
