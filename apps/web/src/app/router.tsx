@@ -4,6 +4,7 @@ import { OnboardingPage } from '../features/auth/OnboardingPage';
 import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { RegisterPage } from '../features/auth/RegisterPage';
 import { CoachContextPage } from '../features/coach/CoachContextPage';
+import { CoachReviewPage } from '../features/coach/CoachReviewPage';
 import { DataInventoryPage } from '../features/data-inventory/DataInventoryPage';
 import { PuzzlePage } from '../features/puzzles/PuzzlePage';
 import { ProgressPage } from '../features/progress/ProgressPage';
@@ -59,6 +60,14 @@ export function AppRouter() {
         element={
           <ProtectedRoute>
             <CoachContextPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coach/review"
+        element={
+          <ProtectedRoute>
+            <CoachReviewPage />
           </ProtectedRoute>
         }
       />

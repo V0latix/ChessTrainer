@@ -378,6 +378,42 @@
   margin: 0 0 6px;
 }
 
+.coach-review-grid {
+  grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
+}
+
+.coach-mistake-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.coach-mistake-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0a1020;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.coach-mistake-item p {
+  margin: 0 0 6px;
+}
+
+.coach-mistake-item .auth-submit {
+  margin-top: 0;
+}
+
+.coach-review-grid a {
+  color: var(--primary);
+}
+
 .auth-shell {
   min-height: 100vh;
   display: flex;

@@ -166,6 +166,9 @@ export function CoachContextPage() {
             Context ID: <strong>{selectedContext.context_id}</strong>
           </p>
           <p>Sélectionné le: {formatDate(selectedContext.selected_at)}</p>
+          <p className="hero-link-row">
+            <Link to="/coach/review">Ouvrir la review élève</Link>
+          </p>
         </section>
       ) : null}
 

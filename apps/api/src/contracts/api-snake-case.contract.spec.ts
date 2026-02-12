@@ -4,6 +4,7 @@ import { AppService } from '../app.service';
 import { AnalysisJobsController } from '../modules/analysis-jobs/analysis-jobs.controller';
 import { AuthController } from '../modules/auth/auth.controller';
 import { CoachContextController } from '../modules/coach-context/coach-context.controller';
+import { CoachReviewController } from '../modules/coach-review/coach-review.controller';
 import { DataInventoryController } from '../modules/data-inventory/data-inventory.controller';
 import { ImportsController } from '../modules/imports/imports.controller';
 import { PuzzlesController } from '../modules/puzzles/puzzles.controller';
@@ -531,5 +532,67 @@ describe('API snake_case contract', () => {
       },
     );
     expectSnakeCaseKeys(selectedResult);
+  });
+
+  it('enforces snake_case keys for coach review payloads', async () => {
+    const controller = new CoachReviewController({
+      importStudentGames: jest.fn().mockResolvedValue({
+        username: 'leoChess',
+        scanned_count: 12,
+        imported_count: 4,
+        already_existing_count: 8,
+        failed_count: 0,
+        failures: [],
+        unavailable_periods: [],
+      }),
+      listStudentMistakes: jest.fn().mockResolvedValue({
+        student_user_id: 'student-1',
+        mistakes: [
+          {
+            mistake_id: 'mistake-1',
+            game_id: 'game-1',
+            game_url: 'https://www.chess.com/game/live/123',
+            chess_com_username: 'leoChess',
+            fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
+            phase: 'endgame',
+            severity: 'blunder',
+            category: 'endgame_blunder',
+            played_move_uci: 'h1h2',
+            best_move_uci: 'h1g1',
+            eval_drop_cp: 540,
+            ply_index: 60,
+            created_at: '2026-02-11T00:00:00.000Z',
+            wrong_move_explanation: 'wrong',
+            best_move_explanation: 'best',
+          },
+        ],
+      }),
+    } as any);
+
+    const importResult = await controller.importStudentGames(
+      {
+        local_user_id: 'coach-1',
+        supabase_sub: 'sub-coach-1',
+        email: 'coach@example.com',
+        role: 'coach',
+      },
+      {
+        student_user_id: 'student-1',
+        chess_com_username: 'leoChess',
+      },
+    );
+    expectSnakeCaseKeys(importResult);
+
+    const mistakesResult = await controller.listStudentMistakes(
+      {
+        local_user_id: 'coach-1',
+        supabase_sub: 'sub-coach-1',
+        email: 'coach@example.com',
+        role: 'coach',
+      },
+      'student-1',
+      '10',
+    );
+    expectSnakeCaseKeys(mistakesResult);
   });
 });

@@ -171,6 +171,17 @@ npm run dev
   - Unauthorized student context selection is blocked (`403`).
   - New protected web route: `/coach/context` to list authorized students and activate one context.
   - Selected context metadata is persisted client-side for next coach stories.
+- Coach import + mistake review (Story 6.2):
+  - API endpoints:
+    - `POST /coach/review/import`
+    - `GET /coach/review/mistakes?student_user_id=<id>&limit=<n>`
+  - Endpoints are coach-only and restricted to authorized `coach_student_accesses` scope.
+  - New protected web route: `/coach/review`.
+  - Coach review flow supports:
+    - importing a selected student’s recent games from Chess.com
+    - listing key mistakes with explanations
+    - opening each mistake with board context + rationale panel
+  - Coach context page now links directly to the review workspace once a student context is selected.
 
 ## Useful Commands
 
