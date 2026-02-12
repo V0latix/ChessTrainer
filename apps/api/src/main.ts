@@ -72,6 +72,13 @@ async function bootstrap() {
         response: Response,
         next: NextFunction,
       ) => {
+        // Allow internal platform health checks over plain HTTP.
+        // (External traffic is still expected to go through HTTPS.)
+        if ((request.originalUrl ?? request.url) === '/health') {
+          next();
+          return;
+        }
+
         const forwardedProto = request.headers['x-forwarded-proto']
           ?.split(',')[0]
           ?.trim();
