@@ -25,8 +25,6 @@ export function Puzzle({ objective, source, context }: PuzzleProps) {
               <li>Phase: {context.phase}</li>
               <li>Sévérité: {context.severity}</li>
               <li>Catégorie: {context.category}</li>
-              <li>Ton coup: {context.played_move_uci}</li>
-              <li>Meilleur coup: {context.best_move_uci}</li>
               <li>Perte estimée: {context.eval_drop_cp} cp</li>
               <li>
                 Partie source:{' '}

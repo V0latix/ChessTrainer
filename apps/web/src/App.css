@@ -141,6 +141,14 @@
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .puzzle-board-column {
+    grid-row: auto;
+  }
 }
 
 .hero {
@@ -232,7 +240,7 @@
   grid-template-columns: repeat(8, minmax(0, 1fr));
   width: 100%;
   min-width: 352px;
-  max-width: 420px;
+  max-width: 540px;
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
@@ -361,13 +369,15 @@
 }
 
 .puzzle-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(420px, 1.45fr) minmax(280px, 0.55fr);
   align-items: start;
+  grid-auto-rows: min-content;
 }
 
 .puzzle-board-column {
   display: grid;
   gap: 16px;
+  grid-row: span 2;
 }
 
 .attempt-result {

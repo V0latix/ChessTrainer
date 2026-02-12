@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AppLayout } from '../../components/AppLayout/AppLayout';
-import { Board } from '../../components/Board/Board';
-import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
-import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
-import { Puzzle } from '../../components/Puzzle/Puzzle';
 import { deleteAccountFromApi } from '../../lib/account-delete';
 import {
   enqueueAnalysisJobs,
@@ -22,6 +18,7 @@ import {
 } from '../../lib/chess-com';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from './auth-context';
+import { PuzzleTrainer } from '../puzzles/PuzzleTrainer';
 
 type OnboardingPageProps = {
   onLoggedOut?: () => void;
@@ -463,20 +460,11 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           </p>
         </header>
 
-      {logoutError ? <p className="auth-message auth-message-error">{logoutError}</p> : null}
+        {logoutError ? (
+          <p className="auth-message auth-message-error">{logoutError}</p>
+        ) : null}
 
-      <div className="grid">
-        <Board />
-        <Puzzle />
-        <ExplanationPanel
-          status="incorrect"
-          attemptedMoveUci="h1h2"
-          bestMoveUci="h1g1"
-          wrongMoveExplanation="Exemple: ce coup perd le contrôle des cases clés autour du roi."
-          bestMoveExplanation="Exemple: ce coup améliore l’activité des pièces et neutralise la menace."
-        />
-        <ProgressSummary />
-      </div>
+        <PuzzleTrainer />
 
       <section ref={importZoneRef} id="import" className="import-zone">
         <h2>Importer depuis Chess.com</h2>

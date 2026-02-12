@@ -70,6 +70,12 @@ vi.mock('./auth-context', () => {
   };
 });
 
+vi.mock('../puzzles/PuzzleTrainer', () => {
+  return {
+    PuzzleTrainer: () => <div data-testid="puzzle-trainer-stub" />,
+  };
+});
+
 describe('OnboardingPage', () => {
   beforeEach(() => {
     signOutMock.mockReset();
