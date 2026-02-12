@@ -1,6 +1,6 @@
 # Story 4.3: Sequence Puzzles in Session Flow
 
-Status: review
+Status: done
 
 ## Story
 

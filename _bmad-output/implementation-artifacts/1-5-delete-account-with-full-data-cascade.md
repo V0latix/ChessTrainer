@@ -1,6 +1,6 @@
 # Story 1.5: Delete Account with Full Data Cascade
 
-Status: review
+Status: done
 
 ## Story
 

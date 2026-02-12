@@ -1,6 +1,6 @@
 # Story 4.4: Explain Wrong Move and Best Move
 
-Status: review
+Status: done
 
 ## Story
 

@@ -1,6 +1,6 @@
 # Story 3.2: Run Stockfish Analysis in Worker
 
-Status: review
+Status: done
 
 ## Story
 

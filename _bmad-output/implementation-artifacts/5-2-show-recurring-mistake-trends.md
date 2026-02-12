@@ -1,6 +1,6 @@
 # Story 5.2: Show Recurring Mistake Trends
 
-Status: review
+Status: done
 
 ## Story
 

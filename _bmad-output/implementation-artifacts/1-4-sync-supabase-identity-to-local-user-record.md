@@ -1,6 +1,6 @@
 # Story 1.4: Sync Supabase Identity to Local User Record
 
-Status: review
+Status: done
 
 ## Story
 

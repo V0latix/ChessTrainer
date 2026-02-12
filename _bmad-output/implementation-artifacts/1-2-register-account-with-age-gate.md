@@ -1,6 +1,6 @@
 # Story 1.2: Register Account with Age Gate
 
-Status: review
+Status: done
 
 ## Story
 

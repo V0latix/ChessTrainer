@@ -1,6 +1,6 @@
 # Story 4.2: Evaluate Attempt and Enable Retry
 
-Status: review
+Status: done
 
 ## Story
 

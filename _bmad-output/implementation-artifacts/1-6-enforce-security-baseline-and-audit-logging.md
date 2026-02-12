@@ -1,6 +1,6 @@
 # Story 1.6: Enforce Security Baseline and Audit Logging
 
-Status: review
+Status: done
 
 ## Story
 

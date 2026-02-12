@@ -1,6 +1,6 @@
 # Story 2.4: Apply Retry and Backoff on Chess.com Limits
 
-Status: review
+Status: done
 
 ## Story
 

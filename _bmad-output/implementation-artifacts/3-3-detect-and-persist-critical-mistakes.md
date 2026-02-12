@@ -1,6 +1,6 @@
 # Story 3.3: Detect and Persist Critical Mistakes
 
-Status: review
+Status: done
 
 ## Story
 

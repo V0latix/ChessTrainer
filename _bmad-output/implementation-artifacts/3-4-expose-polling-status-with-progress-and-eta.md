@@ -1,6 +1,6 @@
 # Story 3.4: Expose Polling Status with Progress and ETA
 
-Status: review
+Status: done
 
 ## Story
 

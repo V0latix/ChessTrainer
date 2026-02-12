@@ -1,6 +1,6 @@
 # Story 3.5: Enforce API Contract and Platform Observability
 
-Status: review
+Status: done
 
 ## Story
 

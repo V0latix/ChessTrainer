@@ -1,6 +1,6 @@
 # Story 1.3: Login and Logout Securely
 
-Status: review
+Status: done
 
 ## Story
 

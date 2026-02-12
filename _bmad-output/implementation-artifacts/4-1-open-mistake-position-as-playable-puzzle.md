@@ -1,6 +1,6 @@
 # Story 4.1: Open Mistake Position as Playable Puzzle
 
-Status: review
+Status: done
 
 ## Story
 

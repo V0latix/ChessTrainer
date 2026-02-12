@@ -1,6 +1,6 @@
 # Story 2.1: Connect Chess.com and List Candidate Games
 
-Status: review
+Status: done
 
 ## Story
 

@@ -1,6 +1,6 @@
 # Story 4.5: Accessibility Hardening for Puzzle and Explanation Flow
 
-Status: review
+Status: done
 
 ## Story
 

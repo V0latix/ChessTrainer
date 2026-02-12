@@ -1,6 +1,6 @@
 # Story 2.2: Import Selected Games
 
-Status: review
+Status: done
 
 ## Story
 

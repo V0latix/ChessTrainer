@@ -1,6 +1,6 @@
 # Story 5.1: Show Session Progress Summary
 
-Status: review
+Status: done
 
 ## Story
 

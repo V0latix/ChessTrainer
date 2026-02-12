@@ -1,6 +1,6 @@
 # Story 5.4: Delete Stored Games and Analyses
 
-Status: review
+Status: done
 
 ## Story
 
