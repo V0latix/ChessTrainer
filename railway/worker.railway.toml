@@ -1,10 +1,10 @@
 [build]
 builder = "nixpacks"
 # Worker also uses Prisma, but the schema lives in apps/api/prisma.
-buildCommand = "npm ci --include=dev && npm run prisma:generate -w @chesstrainer/api && npm run build -w @chesstrainer/worker"
+# Nixpacks mounts a cache at /app/node_modules/.cache; `npm ci` tries to delete node_modules and can fail with EBUSY.
+buildCommand = "npm install --include=dev && npm run prisma:generate -w @chesstrainer/api && npm run build -w @chesstrainer/worker"
 
 [deploy]
 startCommand = "npm run start -w @chesstrainer/worker"
 # No healthcheck: this service is a background worker (no HTTP server).
 restartPolicyType = "always"
-
