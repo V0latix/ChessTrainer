@@ -22,6 +22,140 @@ type PuzzleTrainerProps = {
   showEvalBar?: boolean;
 };
 
+function estimateEvalPawns(game: Chess) {
+  // Super simple eval: material + small positional nudges (centipawns).
+  const baseValues: Record<string, number> = {
+    p: 100,
+    n: 320,
+    b: 330,
+    r: 500,
+    q: 900,
+    k: 0,
+  };
+
+  const knightPst = [
+    [-50, -40, -30, -30, -30, -30, -40, -50],
+    [-40, -20, 0, 0, 0, 0, -20, -40],
+    [-30, 0, 15, 20, 20, 15, 0, -30],
+    [-30, 5, 20, 25, 25, 20, 5, -30],
+    [-30, 0, 20, 25, 25, 20, 0, -30],
+    [-30, 5, 15, 20, 20, 15, 5, -30],
+    [-40, -20, 0, 5, 5, 0, -20, -40],
+    [-50, -40, -30, -30, -30, -30, -40, -50],
+  ];
+
+  const bishopPst = [
+    [-20, -10, -10, -10, -10, -10, -10, -20],
+    [-10, 0, 0, 0, 0, 0, 0, -10],
+    [-10, 0, 10, 10, 10, 10, 0, -10],
+    [-10, 5, 10, 15, 15, 10, 5, -10],
+    [-10, 0, 10, 15, 15, 10, 0, -10],
+    [-10, 5, 10, 10, 10, 10, 5, -10],
+    [-10, 0, 0, 0, 0, 0, 0, -10],
+    [-20, -10, -10, -10, -10, -10, -10, -20],
+  ];
+
+  const pawnPst = [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [5, 10, 10, -15, -15, 10, 10, 5],
+    [5, -5, -10, 0, 0, -10, -5, 5],
+    [0, 0, 0, 20, 20, 0, 0, 0],
+    [5, 5, 10, 25, 25, 10, 5, 5],
+    [10, 10, 20, 30, 30, 20, 10, 10],
+    [50, 50, 50, 50, 50, 50, 50, 50],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+  ];
+
+  const rookPst = [
+    [0, 0, 5, 10, 10, 5, 0, 0],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [5, 10, 10, 10, 10, 10, 10, 5],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+  ];
+
+  const queenPst = [
+    [-20, -10, -10, -5, -5, -10, -10, -20],
+    [-10, 0, 0, 0, 0, 0, 0, -10],
+    [-10, 0, 5, 5, 5, 5, 0, -10],
+    [-5, 0, 5, 5, 5, 5, 0, -5],
+    [0, 0, 5, 5, 5, 5, 0, -5],
+    [-10, 5, 5, 5, 5, 5, 0, -10],
+    [-10, 0, 5, 0, 0, 0, 0, -10],
+    [-20, -10, -10, -5, -5, -10, -10, -20],
+  ];
+
+  const pstByType: Record<string, number[][]> = {
+    p: pawnPst,
+    n: knightPst,
+    b: bishopPst,
+    r: rookPst,
+    q: queenPst,
+  };
+
+  if (game.isCheckmate()) {
+    // Side to move is checkmated.
+    return game.turn() === 'w' ? -100 : 100;
+  }
+
+  let scoreCp = 0;
+  const board = game.board(); // rank 8 -> 1
+
+  for (let rank = 0; rank < board.length; rank += 1) {
+    for (let file = 0; file < board[rank].length; file += 1) {
+      const piece = board[rank][file];
+      if (!piece) {
+        continue;
+      }
+
+      const sign = piece.color === 'w' ? 1 : -1;
+      scoreCp += sign * (baseValues[piece.type] ?? 0);
+
+      const pst = pstByType[piece.type];
+      if (pst) {
+        const pstRank = piece.color === 'w' ? rank : 7 - rank;
+        scoreCp += sign * pst[pstRank][file];
+      }
+    }
+  }
+
+  // Small check bonus/penalty (side to move is in check).
+  if (game.inCheck()) {
+    scoreCp += game.turn() === 'w' ? -40 : 40;
+  }
+
+  return Math.max(-12, Math.min(12, scoreCp / 100));
+}
+
+function evalAfterUciMove(params: { fen: string; uci: string }): number | null {
+  const normalized = params.uci.trim();
+  if (normalized.length < 4) {
+    return null;
+  }
+
+  const from = normalized.slice(0, 2);
+  const to = normalized.slice(2, 4);
+  const promotion = normalized.length >= 5 ? normalized.slice(4, 5) : undefined;
+
+  try {
+    const game = new Chess(params.fen);
+    const move = game.move({
+      from,
+      to,
+      promotion: promotion as 'q' | 'r' | 'b' | 'n' | undefined,
+    });
+    if (!move) {
+      return null;
+    }
+    return estimateEvalPawns(game);
+  } catch {
+    return null;
+  }
+}
+
 export function PuzzleTrainer({
   limit = 10,
   showPuzzlePanel = true,
@@ -198,9 +332,6 @@ export function PuzzleTrainer({
             ? previous
             : [...previous, result.puzzle_id],
         );
-      } else if (result.retry_available) {
-        // Reset the board so the next attempt starts from the original puzzle position.
-        setBoardResetVersion((previous) => previous + 1);
       }
     } catch (error) {
       setAttemptResult(null);
@@ -249,32 +380,6 @@ export function PuzzleTrainer({
     [attemptResult],
   );
 
-  function evalAfterUciMove(params: { fen: string; uci: string }): number | null {
-    const normalized = params.uci.trim();
-    if (normalized.length < 4) {
-      return null;
-    }
-
-    const from = normalized.slice(0, 2);
-    const to = normalized.slice(2, 4);
-    const promotion = normalized.length >= 5 ? normalized.slice(4, 5) : undefined;
-
-    try {
-      const game = new Chess(params.fen);
-      const move = game.move({
-        from,
-        to,
-        promotion: promotion as 'q' | 'r' | 'b' | 'n' | undefined,
-      });
-      if (!move) {
-        return null;
-      }
-      return estimateEvalPawns(game);
-    } catch {
-      return null;
-    }
-  }
-
   const evalGain = useMemo(() => {
     if (!currentPuzzle || !lastMoveUci) {
       return null;
@@ -299,114 +404,6 @@ export function PuzzleTrainer({
     const rounded = Math.round(value * factor) / factor;
     const sign = rounded > 0 ? '+' : '';
     return `${sign}${rounded.toFixed(decimals)}`;
-  }
-
-  function estimateEvalPawns(game: Chess) {
-    // Super simple eval: material + small positional nudges (centipawns).
-    const baseValues: Record<string, number> = {
-      p: 100,
-      n: 320,
-      b: 330,
-      r: 500,
-      q: 900,
-      k: 0,
-    };
-
-    const knightPst = [
-      [-50, -40, -30, -30, -30, -30, -40, -50],
-      [-40, -20, 0, 0, 0, 0, -20, -40],
-      [-30, 0, 15, 20, 20, 15, 0, -30],
-      [-30, 5, 20, 25, 25, 20, 5, -30],
-      [-30, 0, 20, 25, 25, 20, 0, -30],
-      [-30, 5, 15, 20, 20, 15, 5, -30],
-      [-40, -20, 0, 5, 5, 0, -20, -40],
-      [-50, -40, -30, -30, -30, -30, -40, -50],
-    ];
-
-    const bishopPst = [
-      [-20, -10, -10, -10, -10, -10, -10, -20],
-      [-10, 0, 0, 0, 0, 0, 0, -10],
-      [-10, 0, 10, 10, 10, 10, 0, -10],
-      [-10, 5, 10, 15, 15, 10, 5, -10],
-      [-10, 0, 10, 15, 15, 10, 0, -10],
-      [-10, 5, 10, 10, 10, 10, 5, -10],
-      [-10, 0, 0, 0, 0, 0, 0, -10],
-      [-20, -10, -10, -10, -10, -10, -10, -20],
-    ];
-
-    const pawnPst = [
-      [0, 0, 0, 0, 0, 0, 0, 0],
-      [5, 10, 10, -15, -15, 10, 10, 5],
-      [5, -5, -10, 0, 0, -10, -5, 5],
-      [0, 0, 0, 20, 20, 0, 0, 0],
-      [5, 5, 10, 25, 25, 10, 5, 5],
-      [10, 10, 20, 30, 30, 20, 10, 10],
-      [50, 50, 50, 50, 50, 50, 50, 50],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-    ];
-
-    const rookPst = [
-      [0, 0, 5, 10, 10, 5, 0, 0],
-      [-5, 0, 0, 0, 0, 0, 0, -5],
-      [-5, 0, 0, 0, 0, 0, 0, -5],
-      [-5, 0, 0, 0, 0, 0, 0, -5],
-      [-5, 0, 0, 0, 0, 0, 0, -5],
-      [-5, 0, 0, 0, 0, 0, 0, -5],
-      [5, 10, 10, 10, 10, 10, 10, 5],
-      [0, 0, 0, 0, 0, 0, 0, 0],
-    ];
-
-    const queenPst = [
-      [-20, -10, -10, -5, -5, -10, -10, -20],
-      [-10, 0, 0, 0, 0, 0, 0, -10],
-      [-10, 0, 5, 5, 5, 5, 0, -10],
-      [-5, 0, 5, 5, 5, 5, 0, -5],
-      [0, 0, 5, 5, 5, 5, 0, -5],
-      [-10, 5, 5, 5, 5, 5, 0, -10],
-      [-10, 0, 5, 0, 0, 0, 0, -10],
-      [-20, -10, -10, -5, -5, -10, -10, -20],
-    ];
-
-    const pstByType: Record<string, number[][]> = {
-      p: pawnPst,
-      n: knightPst,
-      b: bishopPst,
-      r: rookPst,
-      q: queenPst,
-    };
-
-    if (game.isCheckmate()) {
-      // Side to move is checkmated.
-      return game.turn() === 'w' ? -100 : 100;
-    }
-
-    let scoreCp = 0;
-    const board = game.board(); // rank 8 -> 1
-
-    for (let rank = 0; rank < board.length; rank += 1) {
-      for (let file = 0; file < board[rank].length; file += 1) {
-        const piece = board[rank][file];
-        if (!piece) {
-          continue;
-        }
-
-        const sign = piece.color === 'w' ? 1 : -1;
-        scoreCp += sign * (baseValues[piece.type] ?? 0);
-
-        const pst = pstByType[piece.type];
-        if (pst) {
-          const pstRank = piece.color === 'w' ? rank : 7 - rank;
-          scoreCp += sign * pst[pstRank][file];
-        }
-      }
-    }
-
-    // Small check bonus/penalty (side to move is in check).
-    if (game.inCheck()) {
-      scoreCp += game.turn() === 'w' ? -40 : 40;
-    }
-
-    return Math.max(-12, Math.min(12, scoreCp / 100));
   }
 
   useEffect(() => {
@@ -557,7 +554,9 @@ export function PuzzleTrainer({
                 setLastMoveSan(move.san);
                 void handleMovePlayed(move.uci);
               }}
-              isDisabled={isSubmittingAttempt}
+              isDisabled={
+                isSubmittingAttempt || Boolean(attemptResult && !attemptResult.is_correct)
+              }
               leftAccessory={showEvalBar ? <EvalBar evalPawns={liveEvalPawns} /> : null}
             />
 
@@ -589,47 +588,6 @@ export function PuzzleTrainer({
                   attemptResult.best_move_explanation
                 }
               />
-            ) : null}
-
-            {attemptResult ? (
-              <div
-                tabIndex={-1}
-                role="status"
-                className={[
-                  'attempt-result',
-                  attemptResult.is_correct
-                    ? 'attempt-result-correct'
-                    : 'attempt-result-incorrect',
-                ].join(' ')}
-              >
-                <p>
-                  <strong>{attemptResult.feedback_title}</strong>
-                </p>
-                <p>
-                  {attemptNotation?.feedbackMessage ?? attemptResult.feedback_message}
-                </p>
-                <p>
-                  Coup proposé:{' '}
-                  <strong>
-                    {uciToSan({
-                      fen: currentPuzzle.fen,
-                      uci: attemptResult.attempted_move_uci,
-                    }) ?? attemptResult.attempted_move_uci}
-                  </strong>{' '}
-                  • meilleur coup:{' '}
-                  <strong>
-                    {uciToSan({
-                      fen: currentPuzzle.fen,
-                      uci: attemptResult.best_move_uci,
-                    }) ?? attemptResult.best_move_uci}
-                  </strong>
-                </p>
-                {attemptResult.retry_available ? (
-                  <button className="auth-submit" type="button" onClick={handleRetry}>
-                    Réessayer cette position
-                  </button>
-                ) : null}
-              </div>
             ) : null}
           </div>
 
@@ -690,6 +648,11 @@ export function PuzzleTrainer({
               </section>
 
               <div className="puzzle-actions">
+                {attemptResult?.retry_available && !attemptResult.is_correct ? (
+                  <button className="auth-submit" type="button" onClick={handleRetry}>
+                    Réessayer
+                  </button>
+                ) : null}
                 <button
                   className="auth-submit import-submit-secondary"
                   type="button"

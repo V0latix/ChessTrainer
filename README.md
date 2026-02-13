@@ -2,6 +2,8 @@
 
 Monorepo MVP for ChessTrainer (SPA web + API + worker + shared contracts).
 
+Production web: https://ChessTrainer.vercel.app
+
 ## Requirements
 
 - Node.js 20+

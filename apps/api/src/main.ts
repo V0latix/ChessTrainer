@@ -10,7 +10,18 @@ import { initApiSentry } from './observability/sentry';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  const webOrigin = process.env.WEB_APP_ORIGIN ?? 'http://localhost:5173';
+  const defaultWebOrigin =
+    process.env.NODE_ENV === 'production'
+      ? 'https://ChessTrainer.vercel.app'
+      : 'http://localhost:5173';
+  const configuredWebOrigin = process.env.WEB_APP_ORIGIN
+    ? process.env.WEB_APP_ORIGIN.trim().replace(/\/+$/, '')
+    : null;
+  // Guardrail: if Railway still has the previous Vercel URL configured, remap it.
+  const webOrigin =
+    configuredWebOrigin === 'https://web-flame-three.vercel.app'
+      ? 'https://ChessTrainer.vercel.app'
+      : (configuredWebOrigin ?? defaultWebOrigin);
   const sentryEnabled = initApiSentry();
 
   app.set('trust proxy', 1);
