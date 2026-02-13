@@ -298,19 +298,19 @@ describe('PuzzlePage', () => {
     await waitFor(() => {
       expect(
         screen.getByText(
-          /Le coup h1h2 en endgame \(blunder\) laisse passer une idée clé/i,
+          /Le coup Kh2 en endgame \(blunder\) laisse passer une idée clé/i,
         ),
       ).toBeInTheDocument();
     });
 
     expect(
       screen.getByText(
-        /Le coup h1g1 est meilleur car il améliore l'activité du roi/i,
+        /Le coup Kg1 est meilleur car il améliore l'activité du roi/i,
       ),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /Compare ton idée au coup h1g1 avant de jouer pour éviter ce type d’erreur/i,
+        /Compare ton idée au coup Kg1 avant de jouer pour éviter ce type d’erreur/i,
       ),
     ).toBeInTheDocument();
   });

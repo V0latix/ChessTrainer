@@ -236,6 +236,42 @@
   color: #c5cede;
 }
 
+.board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.board-header-spacer {
+  flex: 1;
+}
+
+.board-trait {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.board-trait-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.board-trait-value {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
 .board-subtitle {
   margin: 8px 0 10px;
   color: var(--muted);
@@ -249,6 +285,18 @@
 
 .board-help strong {
   color: var(--text);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .board-grid {
@@ -285,7 +333,62 @@
   place-items: center;
   background: transparent;
   position: relative;
+  isolation: isolate;
   touch-action: none;
+}
+
+.board-square > * {
+  position: relative;
+  z-index: 1;
+}
+
+.board-square-last-from::after,
+.board-square-last-to::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.board-square-last-from::after {
+  /* Fallback first (for browsers without color-mix). */
+  background: rgba(240, 205, 112, 0.18);
+  background: color-mix(in srgb, var(--highlight) 16%, transparent);
+}
+
+.board-square-last-to::after {
+  /* Fallback first (for browsers without color-mix). */
+  background: rgba(240, 205, 112, 0.28);
+  background: color-mix(in srgb, var(--highlight) 24%, transparent);
+}
+
+.board-coord {
+  position: absolute;
+  pointer-events: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  opacity: 0.85;
+  letter-spacing: 0.02em;
+}
+
+.board-coord-rank {
+  top: 6px;
+  left: 6px;
+}
+
+.board-coord-file {
+  right: 6px;
+  bottom: 6px;
+  text-transform: lowercase;
+}
+
+.board-square-light .board-coord {
+  color: rgba(18, 18, 18, 0.75);
+}
+
+.board-square-dark .board-coord {
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .board-square-light {
@@ -338,11 +441,14 @@
 }
 
 .board-square-last-from {
+  /* Fallback first (for browsers without color-mix). */
+  box-shadow: inset 0 0 0 3px rgba(240, 205, 112, 0.55);
   box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--highlight) 55%, transparent);
 }
 
 .board-square-last-to {
   box-shadow:
+    inset 0 0 0 3px rgba(240, 205, 112, 0.85),
     inset 0 0 0 3px color-mix(in srgb, var(--highlight) 85%, transparent),
     inset 0 0 0 6px rgba(5, 7, 15, 0.10);
 }
@@ -442,7 +548,7 @@
 }
 
 .puzzle-grid {
-  grid-template-columns: minmax(520px, 1.8fr) minmax(240px, 0.4fr);
+  grid-template-columns: minmax(520px, 1.75fr) minmax(320px, 0.65fr);
   align-items: start;
   grid-auto-rows: min-content;
 }
@@ -451,6 +557,40 @@
   display: grid;
   gap: 16px;
   grid-row: span 2;
+}
+
+.puzzle-side-column {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.eval-gain-meta {
+  margin: 0;
+  color: var(--muted);
+}
+
+.eval-gain-value {
+  margin: 10px 0 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.eval-gain-unit {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.eval-gain-cp {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.eval-gain-placeholder {
+  color: var(--muted);
 }
 
 .puzzle-board-column-compact {

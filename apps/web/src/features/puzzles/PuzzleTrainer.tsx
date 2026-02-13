@@ -6,6 +6,7 @@ import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
 import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
 import { recordPuzzleSession } from '../../lib/progress';
+import { replaceUciWithSan, uciToSan } from '../../lib/chess-notation';
 import {
   evaluatePuzzleAttempt,
   getPuzzleSession,
@@ -33,6 +34,7 @@ export function PuzzleTrainer({
   const [sessionPuzzles, setSessionPuzzles] = useState<NextPuzzleResponse[]>([]);
   const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0);
   const [lastMoveUci, setLastMoveUci] = useState<string | null>(null);
+  const [lastMoveSan, setLastMoveSan] = useState<string | null>(null);
   const [isSubmittingAttempt, setIsSubmittingAttempt] = useState(false);
   const [attemptResult, setAttemptResult] =
     useState<EvaluatePuzzleAttemptResponse | null>(null);
@@ -41,7 +43,6 @@ export function PuzzleTrainer({
   const [skippedPuzzleIds, setSkippedPuzzleIds] = useState<string[]>([]);
   const [isPersistingSession, setIsPersistingSession] = useState(false);
   const [isSessionPersisted, setIsSessionPersisted] = useState(false);
-  const attemptFeedbackRef = useRef<HTMLDivElement | null>(null);
   const positionGameRef = useRef<Chess | null>(null);
   const [liveEvalPawns, setLiveEvalPawns] = useState(0);
 
@@ -57,6 +58,29 @@ export function PuzzleTrainer({
     : `${Math.min(currentPuzzleIndex + 1, totalPuzzles)}/${totalPuzzles}`;
 
   const showInfoPanel = showPuzzlePanel || showContextPanel;
+  const attemptNotation = useMemo(() => {
+    if (!attemptResult || !currentPuzzle) {
+      return null;
+    }
+
+    const fen = currentPuzzle.fen;
+    const attemptedSan = uciToSan({ fen, uci: attemptResult.attempted_move_uci });
+    const bestSan = uciToSan({ fen, uci: attemptResult.best_move_uci });
+
+    return {
+      attemptedSan,
+      bestSan,
+      wrongMoveExplanation: replaceUciWithSan({
+        fen,
+        text: attemptResult.wrong_move_explanation,
+      }),
+      bestMoveExplanation: replaceUciWithSan({
+        fen,
+        text: attemptResult.best_move_explanation,
+      }),
+      feedbackMessage: replaceUciWithSan({ fen, text: attemptResult.feedback_message }),
+    };
+  }, [attemptResult, currentPuzzle]);
 
   function formatDateForInfo(value: string | null | undefined) {
     if (!value) {
@@ -190,6 +214,7 @@ export function PuzzleTrainer({
   function advanceToNextPuzzle() {
     setAttemptResult(null);
     setLastMoveUci(null);
+    setLastMoveSan(null);
     setErrorMessage(null);
     setBoardResetVersion(0);
     setCurrentPuzzleIndex((previous) => previous + 1);
@@ -198,6 +223,7 @@ export function PuzzleTrainer({
   function handleRetry() {
     setAttemptResult(null);
     setLastMoveUci(null);
+    setLastMoveSan(null);
     setErrorMessage(null);
     setBoardResetVersion((previous) => previous + 1);
   }
@@ -219,6 +245,58 @@ export function PuzzleTrainer({
     () => Boolean(attemptResult?.is_correct),
     [attemptResult],
   );
+
+  function evalAfterUciMove(params: { fen: string; uci: string }): number | null {
+    const normalized = params.uci.trim();
+    if (normalized.length < 4) {
+      return null;
+    }
+
+    const from = normalized.slice(0, 2);
+    const to = normalized.slice(2, 4);
+    const promotion = normalized.length >= 5 ? normalized.slice(4, 5) : undefined;
+
+    try {
+      const game = new Chess(params.fen);
+      const move = game.move({
+        from,
+        to,
+        promotion: promotion as 'q' | 'r' | 'b' | 'n' | undefined,
+      });
+      if (!move) {
+        return null;
+      }
+      return estimateEvalPawns(game);
+    } catch {
+      return null;
+    }
+  }
+
+  const evalGain = useMemo(() => {
+    if (!currentPuzzle || !lastMoveUci) {
+      return null;
+    }
+
+    const fen = currentPuzzle.fen;
+    const evalAfterGame = evalAfterUciMove({
+      fen,
+      uci: currentPuzzle.context.played_move_uci,
+    });
+    const evalAfterUser = evalAfterUciMove({ fen, uci: lastMoveUci });
+    if (evalAfterGame == null || evalAfterUser == null) {
+      return null;
+    }
+
+    const sideSign = currentPuzzle.side_to_move === 'white' ? 1 : -1;
+    return sideSign * (evalAfterUser - evalAfterGame);
+  }, [currentPuzzle, lastMoveUci]);
+
+  function formatSigned(value: number, decimals = 1) {
+    const factor = 10 ** decimals;
+    const rounded = Math.round(value * factor) / factor;
+    const sign = rounded > 0 ? '+' : '';
+    return `${sign}${rounded.toFixed(decimals)}`;
+  }
 
   function estimateEvalPawns(game: Chess) {
     // Super simple eval: material + small positional nudges (centipawns).
@@ -339,14 +417,6 @@ export function PuzzleTrainer({
     positionGameRef.current = game;
     setLiveEvalPawns(estimateEvalPawns(game));
   }, [boardResetVersion, currentPuzzleFen, currentPuzzleId]);
-
-  useEffect(() => {
-    if (!attemptResult) {
-      return;
-    }
-
-    attemptFeedbackRef.current?.focus();
-  }, [attemptResult]);
 
   useEffect(() => {
     if (!session?.access_token || !isSessionComplete || totalPuzzles === 0) {
@@ -476,24 +546,17 @@ export function PuzzleTrainer({
             <Board
               key={`${currentPuzzle.puzzle_id}-${boardResetVersion}`}
               initialFen={currentPuzzle.fen}
-              title="Entraînement"
+              chrome="compact"
               subtitle={currentPuzzle.objective}
-              lastMoveUci={lastMoveUci}
-              onMovePlayed={(uciMove) => {
-                void handleMovePlayed(uciMove);
+              // Highlight the source-game move until the user plays a move.
+              lastMoveUci={lastMoveUci ?? currentPuzzle.context.played_move_uci}
+              onMovePlayed={(move) => {
+                setLastMoveSan(move.san);
+                void handleMovePlayed(move.uci);
               }}
               isDisabled={isSubmittingAttempt}
               leftAccessory={showEvalBar ? <EvalBar evalPawns={liveEvalPawns} /> : null}
             />
-            {attemptResult ? (
-              <ExplanationPanel
-                status={attemptResult.status}
-                attemptedMoveUci={attemptResult.attempted_move_uci}
-                bestMoveUci={attemptResult.best_move_uci}
-                wrongMoveExplanation={attemptResult.wrong_move_explanation}
-                bestMoveExplanation={attemptResult.best_move_explanation}
-              />
-            ) : null}
 
             {isSubmittingAttempt ? (
               <p role="status" aria-live="polite" className="board-meta">
@@ -501,9 +564,32 @@ export function PuzzleTrainer({
               </p>
             ) : null}
 
+            {lastMoveSan ? (
+              <p className="board-meta">
+                Dernier coup joué: <strong>{lastMoveSan}</strong>
+              </p>
+            ) : null}
+
+            {attemptResult ? (
+              <ExplanationPanel
+                status={attemptResult.status}
+                attemptedMoveUci={attemptResult.attempted_move_uci}
+                bestMoveUci={attemptResult.best_move_uci}
+                attemptedMoveSan={attemptNotation?.attemptedSan}
+                bestMoveSan={attemptNotation?.bestSan}
+                wrongMoveExplanation={
+                  attemptNotation?.wrongMoveExplanation ??
+                  attemptResult.wrong_move_explanation
+                }
+                bestMoveExplanation={
+                  attemptNotation?.bestMoveExplanation ??
+                  attemptResult.best_move_explanation
+                }
+              />
+            ) : null}
+
             {attemptResult ? (
               <div
-                ref={attemptFeedbackRef}
                 tabIndex={-1}
                 role="status"
                 className={[
@@ -516,10 +602,24 @@ export function PuzzleTrainer({
                 <p>
                   <strong>{attemptResult.feedback_title}</strong>
                 </p>
-                <p>{attemptResult.feedback_message}</p>
                 <p>
-                  Coup proposé: <strong>{attemptResult.attempted_move_uci}</strong> •
-                  meilleur coup: <strong>{attemptResult.best_move_uci}</strong>
+                  {attemptNotation?.feedbackMessage ?? attemptResult.feedback_message}
+                </p>
+                <p>
+                  Coup proposé:{' '}
+                  <strong>
+                    {uciToSan({
+                      fen: currentPuzzle.fen,
+                      uci: attemptResult.attempted_move_uci,
+                    }) ?? attemptResult.attempted_move_uci}
+                  </strong>{' '}
+                  • meilleur coup:{' '}
+                  <strong>
+                    {uciToSan({
+                      fen: currentPuzzle.fen,
+                      uci: attemptResult.best_move_uci,
+                    }) ?? attemptResult.best_move_uci}
+                  </strong>
                 </p>
                 {attemptResult.retry_available ? (
                   <button className="auth-submit" type="button" onClick={handleRetry}>
@@ -528,53 +628,83 @@ export function PuzzleTrainer({
                 ) : null}
               </div>
             ) : null}
-
-            <div className="puzzle-actions">
-              <button
-                className="auth-submit import-submit-secondary"
-                type="button"
-                onClick={handleSkipPuzzle}
-                disabled={isSubmittingAttempt}
-              >
-                Passer ce puzzle
-              </button>
-              <button
-                className="auth-submit"
-                type="button"
-                onClick={advanceToNextPuzzle}
-                disabled={!canContinueAfterSolve}
-              >
-                Continuer au puzzle suivant
-              </button>
-            </div>
           </div>
 
           {showInfoPanel ? (
-            <section className="panel" aria-live="polite">
-              <h2>Infos</h2>
-              <ul className="puzzle-context-list">
-                <li>Perte estimée: {currentPuzzle.context.eval_drop_cp} cp</li>
-                <li>
-                  Adversaire:{' '}
-                  <strong>
-                    {currentPuzzle.context.opponent_username ??
-                      currentPuzzle.context.chess_com_username ??
-                      '—'}
-                  </strong>
-                </li>
-                <li>
-                  Date:{' '}
-                  <strong>
-                    {formatDateForInfo(
-                      currentPuzzle.context.game_played_at ?? currentPuzzle.context.created_at,
-                    )}
-                  </strong>
-                </li>
-                <li>
-                  Cadence: <strong>{currentPuzzle.context.time_class ?? 'unknown'}</strong>
-                </li>
-              </ul>
-            </section>
+            <div className="puzzle-side-column">
+              <section className="panel" aria-live="polite">
+                <h2>Infos</h2>
+                <ul className="puzzle-context-list">
+                  <li>Perte estimée: {currentPuzzle.context.eval_drop_cp} cp</li>
+                  <li>
+                    Adversaire:{' '}
+                    <strong>
+                      {currentPuzzle.context.opponent_username ??
+                        currentPuzzle.context.chess_com_username ??
+                        '—'}
+                    </strong>
+                  </li>
+                  <li>
+                    Date:{' '}
+                    <strong>
+                      {formatDateForInfo(
+                        currentPuzzle.context.game_played_at ??
+                          currentPuzzle.context.created_at,
+                      )}
+                    </strong>
+                  </li>
+                  <li>
+                    Cadence:{' '}
+                    <strong>{currentPuzzle.context.time_class ?? 'unknown'}</strong>
+                  </li>
+                </ul>
+              </section>
+
+              <section className="panel">
+                <h2>Gain d’éval</h2>
+                <p className="eval-gain-meta">
+                  {lastMoveSan ? (
+                    <>
+                      Ton coup: <strong>{lastMoveSan}</strong>
+                    </>
+                  ) : (
+                    'Joue un coup pour voir le gain.'
+                  )}
+                </p>
+                <p className="eval-gain-value" aria-live="polite">
+                  {evalGain == null ? (
+                    <span className="eval-gain-placeholder">—</span>
+                  ) : (
+                    <>
+                      {formatSigned(evalGain, 1)}{' '}
+                      <span className="eval-gain-unit">pions</span>{' '}
+                      <span className="eval-gain-cp">
+                        ({formatSigned(Math.round(evalGain * 100), 0)} cp)
+                      </span>
+                    </>
+                  )}
+                </p>
+              </section>
+
+              <div className="puzzle-actions">
+                <button
+                  className="auth-submit import-submit-secondary"
+                  type="button"
+                  onClick={handleSkipPuzzle}
+                  disabled={isSubmittingAttempt}
+                >
+                  Passer ce puzzle
+                </button>
+                <button
+                  className="auth-submit"
+                  type="button"
+                  onClick={advanceToNextPuzzle}
+                  disabled={!canContinueAfterSolve}
+                >
+                  Continuer au puzzle suivant
+                </button>
+              </div>
+            </div>
           ) : null}
         </div>
       ) : null}

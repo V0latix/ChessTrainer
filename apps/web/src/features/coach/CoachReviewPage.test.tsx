@@ -130,13 +130,21 @@ describe('CoachReviewPage', () => {
       });
     });
 
-    expect(screen.getByText(/Mauvais coup en finale/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /https:\/\/www\.chess\.com\/game\/live\/123/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Mauvais coup en finale/i)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('link', { name: /https:\/\/www\.chess\.com\/game\/live\/123/i }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getAllByRole('button', { name: /Ouvrir/i })[1]);
 
-    expect(screen.getByText(/Mauvais coup tactique/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /https:\/\/www\.chess\.com\/game\/live\/456/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Mauvais coup tactique/i)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('link', { name: /https:\/\/www\.chess\.com\/game\/live\/456/i }),
+    ).toBeInTheDocument();
   });
 
   it('imports student games then refreshes mistakes list', async () => {

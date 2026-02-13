@@ -30,9 +30,6 @@ export function AppLayout({ children, sidebarFooter }: AppLayoutProps) {
               <details className="app-nav-section" open>
                 <summary className="app-nav-section-summary">Entraînement</summary>
                 <div className="app-nav-section-links">
-                  <NavLink to="/puzzle" className={navLinkClassName}>
-                    Puzzles
-                  </NavLink>
                   <NavLink to="/progress" className={navLinkClassName}>
                     Résumé
                   </NavLink>
@@ -73,4 +70,3 @@ export function AppLayout({ children, sidebarFooter }: AppLayoutProps) {
     </div>
   );
 }
-

@@ -5,7 +5,8 @@ type BoardProps = {
   initialFen?: string;
   title?: string;
   subtitle?: React.ReactNode;
-  onMovePlayed?: (uciMove: string) => void;
+  chrome?: 'full' | 'compact';
+  onMovePlayed?: (move: { uci: string; san: string }) => void;
   isDisabled?: boolean;
   lastMoveUci?: string | null;
   leftAccessory?: React.ReactNode;
@@ -13,6 +14,10 @@ type BoardProps = {
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
 const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'] as const;
+const FILES_WHITE = [...FILES];
+const FILES_BLACK = [...FILES].slice().reverse();
+const RANKS_WHITE = [...RANKS];
+const RANKS_BLACK = [...RANKS].slice().reverse();
 
 const PIECE_SYMBOLS: Record<string, string> = {
   // Use the "black" chess glyphs for both sides (they're solid in most fonts),
@@ -50,6 +55,7 @@ export function Board({
   initialFen,
   title,
   subtitle,
+  chrome = 'full',
   onMovePlayed,
   isDisabled = false,
   lastMoveUci,
@@ -63,10 +69,23 @@ export function Board({
   const suppressNextClickRef = useRef(false);
   const pointerDownSquareRef = useRef<string | null>(null);
 
+  // For training, keep the board orientation stable for the initial position
+  // (avoid flipping after the user's move changes the turn).
+  const initialTurnColor = useMemo(() => {
+    try {
+      return new Chess(initialFen).turn();
+    } catch {
+      return 'w' as const;
+    }
+  }, [initialFen]);
+  const isFlipped = initialTurnColor === 'b';
+  const viewFiles = isFlipped ? FILES_BLACK : FILES_WHITE;
+  const viewRanks = isFlipped ? RANKS_BLACK : RANKS_WHITE;
+
   const boardSquares = useMemo(
     () =>
-      RANKS.flatMap((rank) =>
-        FILES.map((file) => {
+      viewRanks.flatMap((rank) =>
+        viewFiles.map((file) => {
           const square = `${file}${rank}` as Square;
           const piece = game.get(square);
           const isLightSquare =
@@ -79,7 +98,7 @@ export function Board({
           };
         }),
       ),
-    [game],
+    [game, viewFiles, viewRanks],
   );
 
   const lastMoveSquares = useMemo(() => {
@@ -99,6 +118,8 @@ export function Board({
 
   const turnColor = game.turn();
   const sideToMove = turnColor === 'w' ? 'blancs' : 'noirs';
+  const isCompact = chrome === 'compact';
+  const initialSideToMove = initialTurnColor === 'w' ? 'blancs' : 'noirs';
 
   const legalMoveTargets = useMemo(() => {
     if (!selectedSquare) {
@@ -146,7 +167,10 @@ export function Board({
 
     setGame(nextGame);
     setSelectedSquare(null);
-    onMovePlayed?.(`${move.from}${move.to}${move.promotion ?? ''}`);
+    onMovePlayed?.({
+      uci: `${move.from}${move.to}${move.promotion ?? ''}`,
+      san: move.san,
+    });
   }
 
   function handleSquareClick(square: string) {
@@ -195,10 +219,26 @@ export function Board({
 
   return (
     <section className="panel board-panel">
-      <h2>{title ?? 'Board'}</h2>
-      {subtitle ? <p className="board-subtitle">{subtitle}</p> : null}
-      <p className="board-meta">Trait: {sideToMove}</p>
-      <p id={helpId} className="board-help">
+      {isCompact ? (
+        <>
+          {subtitle ? <p className="sr-only">{subtitle}</p> : null}
+          <div className="board-header">
+            <div className="board-header-spacer" />
+            <div className="board-trait" aria-label={`Trait: ${initialSideToMove}`}>
+              <span className="board-trait-label">Trait</span>
+              <span className="board-trait-value">{initialSideToMove}</span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <h2>{title ?? 'Board'}</h2>
+          {subtitle ? <p className="board-subtitle">{subtitle}</p> : null}
+          <p className="board-meta">Trait: {sideToMove}</p>
+        </>
+      )}
+
+      <p id={helpId} className={isCompact ? 'sr-only' : 'board-help'}>
         Clavier: sélectionne la case de départ puis la case d’arrivée avec
         <strong> Entrée</strong> ou <strong>Espace</strong>.
       </p>
@@ -221,6 +261,10 @@ export function Board({
             const moveTargetMeta = legalMoveTargets.get(item.square) ?? null;
             const lastFrom = lastMoveSquares?.from ?? null;
             const lastTo = lastMoveSquares?.to ?? null;
+            const file = item.square[0] ?? '';
+            const rank = item.square[1] ?? '';
+            const showFile = rank === (isFlipped ? '8' : '1');
+            const showRank = file === (isFlipped ? 'h' : 'a');
 
             return (
               <button
@@ -319,6 +363,16 @@ export function Board({
                 aria-label={`Case ${item.square}${pieceLabel ? `, pièce ${pieceLabel}` : ''}`}
                 aria-pressed={isSelected}
               >
+                {showRank ? (
+                  <span className="board-coord board-coord-rank" aria-hidden="true">
+                    {rank}
+                  </span>
+                ) : null}
+                {showFile ? (
+                  <span className="board-coord board-coord-file" aria-hidden="true">
+                    {file}
+                  </span>
+                ) : null}
                 {moveTargetMeta ? (
                   <span
                     className={[

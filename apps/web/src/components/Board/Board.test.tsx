@@ -23,7 +23,7 @@ describe('Board', () => {
     to.focus();
     await user.keyboard('{Enter}');
 
-    expect(onMovePlayed).toHaveBeenCalledWith('h1h2');
+    expect(onMovePlayed).toHaveBeenCalledWith({ uci: 'h1h2', san: 'Kh2' });
   });
 
   it('exposes selected square state for assistive technologies', async () => {

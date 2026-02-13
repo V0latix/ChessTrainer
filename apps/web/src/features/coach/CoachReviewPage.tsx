@@ -11,6 +11,7 @@ import {
 } from '../../lib/coach-review';
 import { readSelectedCoachContext } from '../../lib/coach-context';
 import { useAuth } from '../auth/auth-context';
+import { replaceUciWithSan, uciToSan } from '../../lib/chess-notation';
 
 export function CoachReviewPage() {
   const { session } = useAuth();
@@ -78,6 +79,25 @@ export function CoachReviewPage() {
       mistakes.find((mistake) => mistake.mistake_id === selectedMistakeId) ?? null,
     [mistakes, selectedMistakeId],
   );
+  const selectedMistakeNotation = useMemo(() => {
+    if (!selectedMistake) {
+      return null;
+    }
+
+    const fen = selectedMistake.fen;
+    return {
+      attemptedSan: uciToSan({ fen, uci: selectedMistake.played_move_uci }),
+      bestSan: uciToSan({ fen, uci: selectedMistake.best_move_uci }),
+      wrongMoveExplanation: replaceUciWithSan({
+        fen,
+        text: selectedMistake.wrong_move_explanation,
+      }),
+      bestMoveExplanation: replaceUciWithSan({
+        fen,
+        text: selectedMistake.best_move_explanation,
+      }),
+    };
+  }, [selectedMistake]);
 
   async function handleImport() {
     if (!session?.access_token || !selectedContext) {
@@ -235,8 +255,16 @@ export function CoachReviewPage() {
                 status="incorrect"
                 attemptedMoveUci={selectedMistake.played_move_uci}
                 bestMoveUci={selectedMistake.best_move_uci}
-                wrongMoveExplanation={selectedMistake.wrong_move_explanation}
-                bestMoveExplanation={selectedMistake.best_move_explanation}
+                attemptedMoveSan={selectedMistakeNotation?.attemptedSan}
+                bestMoveSan={selectedMistakeNotation?.bestSan}
+                wrongMoveExplanation={
+                  selectedMistakeNotation?.wrongMoveExplanation ??
+                  selectedMistake.wrong_move_explanation
+                }
+                bestMoveExplanation={
+                  selectedMistakeNotation?.bestMoveExplanation ??
+                  selectedMistake.best_move_explanation
+                }
               />
               <section className="panel">
                 <h2>Contexte de l’erreur</h2>
