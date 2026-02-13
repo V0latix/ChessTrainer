@@ -177,9 +177,9 @@ export function PuzzleTrainer({
       // Ignore: eval is best-effort, server remains source of truth for puzzle validation.
     }
 
-    // After the first server-validated attempt, allow free play locally
+    // Once the user solved the puzzle, allow free play locally
     // (eval bar keeps moving) but don't submit additional attempts.
-    if (attemptResult) {
+    if (attemptResult?.is_correct) {
       return;
     }
 
@@ -198,6 +198,9 @@ export function PuzzleTrainer({
             ? previous
             : [...previous, result.puzzle_id],
         );
+      } else if (result.retry_available) {
+        // Reset the board so the next attempt starts from the original puzzle position.
+        setBoardResetVersion((previous) => previous + 1);
       }
     } catch (error) {
       setAttemptResult(null);
