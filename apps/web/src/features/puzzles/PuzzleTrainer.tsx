@@ -216,6 +216,17 @@ export function PuzzleTrainer({
     };
   }, [attemptResult, currentPuzzle]);
 
+  const playedMoveSan = useMemo(() => {
+    if (!currentPuzzle) {
+      return null;
+    }
+
+    return (
+      uciToSan({ fen: currentPuzzle.fen, uci: currentPuzzle.context.played_move_uci }) ??
+      currentPuzzle.context.played_move_uci
+    );
+  }, [currentPuzzle]);
+
   function formatDateForInfo(value: string | null | undefined) {
     if (!value) {
       return '—';
@@ -381,7 +392,12 @@ export function PuzzleTrainer({
   );
 
   const evalGain = useMemo(() => {
-    if (!currentPuzzle || !lastMoveUci) {
+    if (!currentPuzzle) {
+      return null;
+    }
+
+    const userMoveUci = attemptResult?.attempted_move_uci ?? lastMoveUci;
+    if (!userMoveUci) {
       return null;
     }
 
@@ -390,14 +406,14 @@ export function PuzzleTrainer({
       fen,
       uci: currentPuzzle.context.played_move_uci,
     });
-    const evalAfterUser = evalAfterUciMove({ fen, uci: lastMoveUci });
+    const evalAfterUser = evalAfterUciMove({ fen, uci: userMoveUci });
     if (evalAfterGame == null || evalAfterUser == null) {
       return null;
     }
 
     const sideSign = currentPuzzle.side_to_move === 'white' ? 1 : -1;
     return sideSign * (evalAfterUser - evalAfterGame);
-  }, [currentPuzzle, lastMoveUci]);
+  }, [attemptResult, currentPuzzle, lastMoveUci]);
 
   function formatSigned(value: number, decimals = 1) {
     const factor = 10 ** decimals;
@@ -623,15 +639,27 @@ export function PuzzleTrainer({
 
               <section className="panel">
                 <h2>Gain d’éval</h2>
-                <p className="eval-gain-meta">
-                  {lastMoveSan ? (
-                    <>
-                      Ton coup: <strong>{lastMoveSan}</strong>
-                    </>
-                  ) : (
-                    'Joue un coup pour voir le gain.'
-                  )}
-                </p>
+                {attemptResult ? (
+                  <ul className="eval-gain-list">
+                    <li>
+                      Coup de la partie: <strong>{playedMoveSan ?? '—'}</strong>
+                    </li>
+                    <li>
+                      Ton coup:{' '}
+                      <strong>
+                        {attemptNotation?.attemptedSan ?? attemptResult.attempted_move_uci}
+                      </strong>
+                    </li>
+                    <li>
+                      Meilleur coup:{' '}
+                      <strong>
+                        {attemptNotation?.bestSan ?? attemptResult.best_move_uci}
+                      </strong>
+                    </li>
+                  </ul>
+                ) : (
+                  <p className="eval-gain-meta">Joue un coup pour voir le gain.</p>
+                )}
                 <p className="eval-gain-value" aria-live="polite">
                   {evalGain == null ? (
                     <span className="eval-gain-placeholder">—</span>

@@ -575,6 +575,19 @@
   color: var(--muted);
 }
 
+.eval-gain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.eval-gain-list strong {
+  color: var(--text);
+}
+
 .eval-gain-value {
   margin: 10px 0 0;
   font-size: 1.75rem;
