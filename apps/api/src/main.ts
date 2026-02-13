@@ -12,7 +12,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const defaultWebOrigin =
     process.env.NODE_ENV === 'production'
-      ? 'https://ChessTrainer.vercel.app'
+      ? 'https://yourchesstrainer.vercel.app'
       : 'http://localhost:5173';
   const configuredWebOrigin = process.env.WEB_APP_ORIGIN
     ? process.env.WEB_APP_ORIGIN.trim().replace(/\/+$/, '')
@@ -20,7 +20,7 @@ async function bootstrap() {
   // Guardrail: if Railway still has the previous Vercel URL configured, remap it.
   const webOrigin =
     configuredWebOrigin === 'https://web-flame-three.vercel.app'
-      ? 'https://ChessTrainer.vercel.app'
+      ? 'https://yourchesstrainer.vercel.app'
       : (configuredWebOrigin ?? defaultWebOrigin);
   const sentryEnabled = initApiSentry();
 

@@ -2,7 +2,7 @@
 
 Monorepo MVP for ChessTrainer (SPA web + API + worker + shared contracts).
 
-Production web: https://ChessTrainer.vercel.app
+Production web: https://yourchesstrainer.vercel.app
 
 ## Requirements
 

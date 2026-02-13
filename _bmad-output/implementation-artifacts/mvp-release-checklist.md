@@ -15,7 +15,7 @@ Status: draft
   - [ ] `SUPABASE_URL`
   - [ ] `SUPABASE_JWT_AUDIENCE`
   - [ ] `SUPABASE_SERVICE_ROLE_KEY`
-  - [ ] `WEB_APP_ORIGIN` (set to `https://ChessTrainer.vercel.app`)
+  - [ ] `WEB_APP_ORIGIN` (set to `https://yourchesstrainer.vercel.app`)
 - [ ] Frontend `.env` is complete:
   - [ ] `VITE_API_BASE_URL`
   - [ ] `VITE_SUPABASE_URL`

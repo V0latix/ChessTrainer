@@ -2,7 +2,7 @@
 
 This document is a pragmatic map of the codebase + runtime so a future session can quickly find “where things are” and “how it’s deployed”.
 
-Canonical production web URL: https://ChessTrainer.vercel.app
+Canonical production web URL: https://yourchesstrainer.vercel.app
 
 ## Services (Runtime)
 
@@ -136,7 +136,7 @@ The canonical list is in `.env.example` (API + worker share some keys).
 Required for API:
 
 - `DATABASE_URL` (Supabase Postgres URL, typically pooler)
-- `WEB_APP_ORIGIN` (must match the Vercel domain you use, e.g. `https://ChessTrainer.vercel.app`)
+- `WEB_APP_ORIGIN` (must match the Vercel domain you use, e.g. `https://yourchesstrainer.vercel.app`)
 - `SUPABASE_URL`
 - `SUPABASE_JWT_AUDIENCE=authenticated`
 - `SUPABASE_SERVICE_ROLE_KEY` (only on server; never expose to web)
@@ -216,7 +216,7 @@ Notes learned during setup:
 
 - **Web “fail to fetch”**
   - Check `VITE_API_BASE_URL` in Vercel.
-  - Check API `WEB_APP_ORIGIN` matches your active Vercel domain (CORS allowlist), e.g. `https://ChessTrainer.vercel.app`.
+  - Check API `WEB_APP_ORIGIN` matches your active Vercel domain (CORS allowlist), e.g. `https://yourchesstrainer.vercel.app`.
 - **Worker crashes + Prisma tries `localhost:5432`**
   - `DATABASE_URL` is missing/wrong on the worker service.
 - **`@prisma/client did not initialize yet`**
