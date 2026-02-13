@@ -1,13 +1,20 @@
 :root {
-  --bg: #05070f;
-  --surface: #0d1324;
-  --surface-muted: #111a30;
-  --text: #e6edf7;
-  --muted: #98a2b3;
-  --border: #1c2742;
-  --primary: #7bb3ff;
-  --primary-strong: #5a8eff;
-  --danger: #f06a87;
+  --bg: #07130d;
+  --surface: #0d1f16;
+  --surface-muted: #103021;
+  --text: #f1f0e8;
+  --muted: #a7b4ae;
+  --border: #244a37;
+  --primary: #d4b35f;
+  --primary-strong: #f0cd70;
+  --danger: #ff5c7a;
+
+  /* Shared accents */
+  --highlight: #f0cd70;
+
+  /* Chessboard colors */
+  --board-light: #f0d9b5;
+  --board-dark: #b58863;
 }
 
 * {
@@ -15,7 +22,7 @@
 }
 
 :focus-visible {
-  outline: 3px solid #f6de82;
+  outline: 3px solid var(--highlight);
   outline-offset: 2px;
 }
 
@@ -40,7 +47,11 @@
 
 .app-sidebar {
   border-right: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(13, 19, 36, 0.9) 0%, rgba(5, 7, 15, 0.95) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 92%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 96%, transparent) 100%
+  );
   position: sticky;
   top: 0;
   height: 100vh;
@@ -54,7 +65,7 @@
 .app-nav-root {
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(10, 16, 32, 0.6);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
   padding: 12px;
 }
 
@@ -85,18 +96,18 @@
 }
 
 .app-nav-link:hover {
-  background: rgba(123, 179, 255, 0.10);
-  border-color: rgba(123, 179, 255, 0.25);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
   color: var(--text);
 }
 
 .app-nav-link:focus-visible {
-  border-color: #f6de82;
+  border-color: var(--highlight);
 }
 
 .app-nav-link-active {
-  background: rgba(123, 179, 255, 0.14);
-  border-color: rgba(123, 179, 255, 0.35);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
   color: var(--text);
 }
 
@@ -104,7 +115,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 8px;
-  background: rgba(13, 19, 36, 0.7);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
 }
 
 .app-nav-section-summary {
@@ -273,11 +284,11 @@
 }
 
 .board-square-light {
-  background: #d3d7de;
+  background: var(--board-light);
 }
 
 .board-square-dark {
-  background: #485d7a;
+  background: var(--board-dark);
 }
 
 .board-piece {
@@ -312,21 +323,21 @@
 }
 
 .board-square-selected {
-  box-shadow: inset 0 0 0 3px #f6de82;
+  box-shadow: inset 0 0 0 3px var(--highlight);
 }
 
 .board-square-last-from {
-  box-shadow: inset 0 0 0 3px rgba(246, 222, 130, 0.55);
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--highlight) 55%, transparent);
 }
 
 .board-square-last-to {
   box-shadow:
-    inset 0 0 0 3px rgba(246, 222, 130, 0.85),
+    inset 0 0 0 3px color-mix(in srgb, var(--highlight) 85%, transparent),
     inset 0 0 0 6px rgba(5, 7, 15, 0.10);
 }
 
 .board-square-drag-over {
-  box-shadow: inset 0 0 0 3px rgba(123, 179, 255, 0.8);
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--primary) 80%, transparent);
 }
 
 .board-move-dot {
@@ -389,7 +400,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: rgba(246, 222, 130, 0.95);
+  background: color-mix(in srgb, var(--highlight) 95%, transparent);
   box-shadow: 0 0 0 1px rgba(5, 7, 15, 0.35);
   transform: translateY(-2px);
   transition: top 220ms ease;
@@ -444,7 +455,7 @@
 }
 
 .attempt-result:focus-visible {
-  outline-color: #f2cb62;
+  outline-color: var(--highlight);
 }
 
 .attempt-result-correct {
@@ -848,7 +859,7 @@
 
 .import-warning p {
   margin: 0 0 6px;
-  color: #f6de82;
+  color: var(--highlight);
 }
 
 .import-warning ul {

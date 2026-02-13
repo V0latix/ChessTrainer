@@ -2,12 +2,12 @@
 
 :root {
   font-family: 'Sora', sans-serif;
-  color: #e6edf7;
-  background: #05070f;
+  color: #f1f0e8;
+  background: #07130d;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top left, #111a30 0%, #05070f 45%);
+  background: radial-gradient(circle at top left, #103021 0%, #07130d 45%);
 }
