@@ -548,8 +548,8 @@ export function PuzzleTrainer({
               initialFen={currentPuzzle.fen}
               chrome="compact"
               subtitle={currentPuzzle.objective}
-              // Highlight the source-game move until the user plays a move.
-              lastMoveUci={lastMoveUci ?? currentPuzzle.context.played_move_uci}
+              // Always highlight the last move that led to the puzzle position (opponent move context).
+              lastMoveUci={currentPuzzle.context.opponent_move_uci}
               onMovePlayed={(move) => {
                 setLastMoveSan(move.san);
                 void handleMovePlayed(move.uci);

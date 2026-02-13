@@ -353,14 +353,14 @@
 
 .board-square-last-from::after {
   /* Fallback first (for browsers without color-mix). */
-  background: rgba(240, 205, 112, 0.18);
-  background: color-mix(in srgb, var(--highlight) 16%, transparent);
+  background: rgba(240, 205, 112, 0.5);
+  background: color-mix(in srgb, var(--highlight) 50%, transparent);
 }
 
 .board-square-last-to::after {
   /* Fallback first (for browsers without color-mix). */
-  background: rgba(240, 205, 112, 0.28);
-  background: color-mix(in srgb, var(--highlight) 24%, transparent);
+  background: rgba(240, 205, 112, 0.78);
+  background: color-mix(in srgb, var(--highlight) 78%, transparent);
 }
 
 .board-coord {
@@ -442,15 +442,20 @@
 
 .board-square-last-from {
   /* Fallback first (for browsers without color-mix). */
-  box-shadow: inset 0 0 0 3px rgba(240, 205, 112, 0.55);
-  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--highlight) 55%, transparent);
+  box-shadow:
+    inset 0 0 0 6px rgba(240, 205, 112, 0.72),
+    inset 0 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    inset 0 0 0 6px color-mix(in srgb, var(--highlight) 72%, transparent),
+    inset 0 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .board-square-last-to {
   box-shadow:
-    inset 0 0 0 3px rgba(240, 205, 112, 0.85),
-    inset 0 0 0 3px color-mix(in srgb, var(--highlight) 85%, transparent),
-    inset 0 0 0 6px rgba(5, 7, 15, 0.10);
+    inset 0 0 0 7px rgba(240, 205, 112, 1),
+    inset 0 0 0 7px color-mix(in srgb, var(--highlight) 100%, transparent),
+    inset 0 0 0 12px rgba(0, 0, 0, 0.1),
+    0 0 18px rgba(240, 205, 112, 0.35);
 }
 
 .board-square-drag-over {

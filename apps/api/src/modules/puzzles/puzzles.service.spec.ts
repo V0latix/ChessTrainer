@@ -5,6 +5,7 @@ describe('PuzzlesService', () => {
   const baseMistake = {
     id: 'mistake-1',
     gameId: 'game-1',
+    analysisJobId: 'analysis-1',
     fen: '8/8/8/8/8/8/8/K6k b - - 0 1',
     phase: 'endgame',
     severity: 'blunder',
@@ -24,10 +25,14 @@ describe('PuzzlesService', () => {
 
   it('returns a puzzle projection from the most recent critical mistake', async () => {
     const findMany = jest.fn().mockResolvedValue([baseMistake]);
+    const findUnique = jest.fn().mockResolvedValue({ playedMoveUci: 'a2a3' });
 
     const service = new PuzzlesService({
       criticalMistake: {
         findMany,
+      },
+      analysisMoveEvaluation: {
+        findUnique,
       },
     } as any);
 
@@ -50,6 +55,7 @@ describe('PuzzlesService', () => {
         phase: 'endgame',
         severity: 'blunder',
         category: 'endgame_blunder',
+        opponent_move_uci: 'a2a3',
         played_move_uci: 'h1h2',
         best_move_uci: 'h1g1',
         eval_drop_cp: 540,
@@ -69,6 +75,7 @@ describe('PuzzlesService', () => {
       select: {
         id: true,
         gameId: true,
+        analysisJobId: true,
         fen: true,
         phase: true,
         severity: true,
@@ -88,6 +95,18 @@ describe('PuzzlesService', () => {
         },
       },
     });
+
+    expect(findUnique).toHaveBeenCalledWith({
+      where: {
+        analysisJobId_plyIndex: {
+          analysisJobId: 'analysis-1',
+          plyIndex: 59,
+        },
+      },
+      select: {
+        playedMoveUci: true,
+      },
+    });
   });
 
   it('returns a session of puzzles ordered by most recent mistakes', async () => {
@@ -99,10 +118,14 @@ describe('PuzzlesService', () => {
         bestMoveUci: 'h1h3',
       },
     ]);
+    const findUnique = jest.fn().mockResolvedValue({ playedMoveUci: 'a2a3' });
 
     const service = new PuzzlesService({
       criticalMistake: {
         findMany,
+      },
+      analysisMoveEvaluation: {
+        findUnique,
       },
     } as any);
 

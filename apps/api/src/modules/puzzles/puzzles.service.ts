@@ -17,6 +17,7 @@ export type NextPuzzleResult = {
     phase: string;
     severity: string;
     category: string;
+    opponent_move_uci: string | null;
     played_move_uci: string;
     best_move_uci: string;
     eval_drop_cp: number;
@@ -75,6 +76,7 @@ export class PuzzlesService {
       select: {
         id: true,
         gameId: true,
+        analysisJobId: true,
         fen: true,
         phase: true,
         severity: true,
@@ -95,11 +97,15 @@ export class PuzzlesService {
       },
     });
 
+    const puzzles = await Promise.all(
+      mistakes.map((mistake) => this.mapMistakeToPuzzle(mistake)),
+    );
+
     return {
       session_id: `${params.user_id}:${mistakes[0]?.id ?? 'empty'}`,
       generated_at: new Date().toISOString(),
       total_puzzles: mistakes.length,
-      puzzles: mistakes.map((mistake) => this.mapMistakeToPuzzle(mistake)),
+      puzzles,
     };
   }
 
@@ -162,9 +168,10 @@ export class PuzzlesService {
     return activeColor === 'b' ? 'black' : 'white';
   }
 
-  private mapMistakeToPuzzle(mistake: {
+  private async mapMistakeToPuzzle(mistake: {
     id: string;
     gameId: string;
+    analysisJobId: string;
     fen: string;
     phase: string;
     severity: string;
@@ -180,9 +187,13 @@ export class PuzzlesService {
       period: string;
       timeClass: string | null;
     };
-  }): NextPuzzleResult {
+  }): Promise<NextPuzzleResult> {
     const sideToMove = this.resolveSideToMove(mistake.fen);
     const sideLabel = sideToMove === 'white' ? 'blancs' : 'noirs';
+    const opponentMoveUci = await this.resolveOpponentMoveUci({
+      analysis_job_id: mistake.analysisJobId,
+      ply_index: mistake.plyIndex,
+    });
 
     return {
       puzzle_id: mistake.id,
@@ -199,6 +210,7 @@ export class PuzzlesService {
         phase: mistake.phase,
         severity: mistake.severity,
         category: mistake.category,
+        opponent_move_uci: opponentMoveUci,
         played_move_uci: mistake.playedMoveUci,
         best_move_uci: mistake.bestMoveUci,
         eval_drop_cp: mistake.evalDropCp,
@@ -206,6 +218,31 @@ export class PuzzlesService {
         created_at: mistake.createdAt.toISOString(),
       },
     };
+  }
+
+  private async resolveOpponentMoveUci(params: {
+    analysis_job_id: string;
+    ply_index: number;
+  }): Promise<string | null> {
+    // The mistake's `fen` is the position *before* `played_move_uci` at `ply_index`.
+    // The opponent move is the previous ply.
+    if (params.ply_index <= 0) {
+      return null;
+    }
+
+    const previous = await this.prisma.analysisMoveEvaluation.findUnique({
+      where: {
+        analysisJobId_plyIndex: {
+          analysisJobId: params.analysis_job_id,
+          plyIndex: params.ply_index - 1,
+        },
+      },
+      select: {
+        playedMoveUci: true,
+      },
+    });
+
+    return previous?.playedMoveUci ?? null;
   }
 
   private buildWrongMoveExplanation(params: {

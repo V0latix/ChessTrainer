@@ -16,6 +16,7 @@ export type NextPuzzleResponse = {
     phase: string;
     severity: string;
     category: string;
+    opponent_move_uci: string | null;
     played_move_uci: string;
     best_move_uci: string;
     eval_drop_cp: number;
