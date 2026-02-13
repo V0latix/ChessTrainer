@@ -1,0 +1,61 @@
+services:
+  - type: web
+    name: chesstrainer-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Database + Supabase (set in Render dashboard).
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # CORS allowlist for the SPA origin (Vercel or Render static site).
+      - key: WEB_APP_ORIGIN
+        sync: false
+
+      # Worker tuning (defaults match .env.example).
+      - key: STOCKFISH_BIN_PATH
+        value: stockfish
+      - key: ANALYSIS_TIMEOUT_MS
+        value: "60000"
+      - key: ANALYSIS_RETRY_MAX_RETRIES
+        value: "2"
+      - key: ANALYSIS_RETRY_BASE_DELAY_MS
+        value: "500"
+      - key: ANALYSIS_RETRY_MAX_DELAY_MS
+        value: "5000"
+      - key: ANALYSIS_STOCKFISH_DEPTH
+        value: "12"
+      - key: WORKER_POLL_INTERVAL_MS
+        value: "5000"
+      - key: WORKER_BATCH_SIZE
+        value: "1"
+      - key: WORKER_RUN_ONCE
+        value: "false"
+
+      # Optional observability.
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        sync: false
+      - key: SENTRY_RELEASE
+        sync: false
+      - key: WORKER_SENTRY_DSN
+        sync: false
+
+      # Optional: automatically push Prisma schema on each start (MVP only).
+      - key: PRISMA_DB_PUSH_ON_START
+        value: "false"
+

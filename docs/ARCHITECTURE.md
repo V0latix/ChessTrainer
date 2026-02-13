@@ -20,11 +20,10 @@ Canonical production web URL: https://yourchesstrainer.vercel.app
 
 ```mermaid
 flowchart LR
-  W["Web (Vercel)\napps/web"] -->|HTTP + JWT| A["API (Railway)\napps/api"]
-  A -->|Prisma| DB["Supabase Postgres"]
-  WK["Worker (Railway)\napps/worker"] -->|Prisma| DB
-  WK -->|spawn| SF["Stockfish binary"]
-  A -->|Chess.com public API| C["Chess.com"]
+  W["Web (Vercel)\napps/web"] -->|HTTP + JWT| R["Render Web Service\nAPI + Worker"]
+  R -->|Prisma| DB["Supabase Postgres"]
+  R -->|spawn| SF["Stockfish binary"]
+  R -->|Chess.com public API| C["Chess.com"]
 ```
 
 ## Monorepo Layout
@@ -33,7 +32,9 @@ flowchart LR
 - `apps/api/`: NestJS API (controllers/services/modules + Prisma schema)
 - `apps/worker/`: background worker that executes analysis jobs
 - `packages/shared-contracts/`: shared TS types/contracts used by web/api/worker
-- `railway/`: Railway “config-as-code” TOML files (build/start commands)
+- `render.yaml`: Render Blueprint (deploy API + worker)
+- `Dockerfile`: Render Docker build (installs Stockfish)
+- `railway/`: legacy Railway “config-as-code” TOML files (build/start commands)
 - `scripts/`: repo scripts (smoke tests, perf checks, security baseline)
 - `_bmad-output/`: BMAD planning artifacts (PRD, UX spec, checklists, brainstorming)
 
@@ -189,21 +190,27 @@ Sentry:
 
 - `WORKER_SENTRY_DSN` (or reuse `SENTRY_DSN`)
 
-## Deploy (Vercel + Railway + Supabase)
+## Deploy (Vercel + Render + Supabase)
 
 ### Vercel (Web)
 
 - Deploy `apps/web`
 - Set env vars:
-  - `VITE_API_BASE_URL` = Railway API base URL (no trailing slash)
+  - `VITE_API_BASE_URL` = Render API base URL (no trailing slash)
   - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 
-### Railway (API + Worker)
+### Render (API + Worker)
 
-Config-as-code files:
+Blueprint config:
 
-- API: `railway/api.railway.toml`
-- Worker: `railway/worker.railway.toml`
+- `render.yaml`
+
+Implementation detail (for Render free tier):
+
+- The Render service is a single Docker "web service" that starts both:
+  - API (`apps/api`)
+  - Worker (`apps/worker`)
+  - Stockfish is installed in the Docker image.
 
 Notes learned during setup:
 
