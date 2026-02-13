@@ -6,6 +6,8 @@ type BoardProps = {
   title?: string;
   onMovePlayed?: (uciMove: string) => void;
   isDisabled?: boolean;
+  lastMoveUci?: string | null;
+  leftAccessory?: React.ReactNode;
 };
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
@@ -48,6 +50,8 @@ export function Board({
   title,
   onMovePlayed,
   isDisabled = false,
+  lastMoveUci,
+  leftAccessory,
 }: BoardProps) {
   const helpId = useId();
   const [game, setGame] = useState(() => new Chess(initialFen));
@@ -75,6 +79,21 @@ export function Board({
       ),
     [game],
   );
+
+  const lastMoveSquares = useMemo(() => {
+    if (!lastMoveUci) {
+      return null;
+    }
+
+    const normalized = lastMoveUci.trim();
+    if (normalized.length < 4) {
+      return null;
+    }
+
+    const from = normalized.slice(0, 2);
+    const to = normalized.slice(2, 4);
+    return { from, to };
+  }, [lastMoveUci]);
 
   const turnColor = game.turn();
   const sideToMove = turnColor === 'w' ? 'blancs' : 'noirs';
@@ -180,140 +199,151 @@ export function Board({
         Clavier: sélectionne la case de départ puis la case d’arrivée avec
         <strong> Entrée</strong> ou <strong>Espace</strong>.
       </p>
-      <div
-        className="board-grid"
-        role="grid"
-        aria-label="Échiquier interactif"
-        aria-describedby={helpId}
-      >
-        {boardSquares.map((item) => {
-          const pieceKey = item.piece ? `${item.piece.color}${item.piece.type}` : null;
-          const symbol = pieceKey ? PIECE_SYMBOLS[pieceKey] : '';
-          const pieceLabel = pieceKey ? PIECE_LABELS[pieceKey] : null;
-          const isSelected = selectedSquare === item.square;
-          const pieceColor = item.piece?.color ?? null;
-          const moveTargetMeta = legalMoveTargets.get(item.square) ?? null;
+      <div className="board-body">
+        {leftAccessory ? <div className="board-accessory">{leftAccessory}</div> : null}
+        <div
+          className="board-grid"
+          role="grid"
+          aria-label="Échiquier interactif"
+          aria-describedby={helpId}
+        >
+          {boardSquares.map((item) => {
+            const pieceKey = item.piece
+              ? `${item.piece.color}${item.piece.type}`
+              : null;
+            const symbol = pieceKey ? PIECE_SYMBOLS[pieceKey] : '';
+            const pieceLabel = pieceKey ? PIECE_LABELS[pieceKey] : null;
+            const isSelected = selectedSquare === item.square;
+            const pieceColor = item.piece?.color ?? null;
+            const moveTargetMeta = legalMoveTargets.get(item.square) ?? null;
+            const lastFrom = lastMoveSquares?.from ?? null;
+            const lastTo = lastMoveSquares?.to ?? null;
 
-          return (
-            <button
-              key={item.square}
-              type="button"
-              className={[
-                'board-square',
-                item.isLightSquare ? 'board-square-light' : 'board-square-dark',
-                isSelected ? 'board-square-selected' : '',
-                isDragging && dragOverSquare === item.square ? 'board-square-drag-over' : '',
-                isDisabled ? 'board-square-disabled' : '',
-                pieceColor ? `board-square-has-piece board-square-has-piece-${pieceColor}` : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onClick={() => handleSquareClick(item.square)}
-              onPointerDown={(event) => {
-                if (event.button !== 0) {
-                  return;
-                }
-                event.preventDefault();
-                if (isDisabled) {
-                  return;
-                }
+            return (
+              <button
+                key={item.square}
+                type="button"
+                className={[
+                  'board-square',
+                  item.isLightSquare ? 'board-square-light' : 'board-square-dark',
+                  isSelected ? 'board-square-selected' : '',
+                  isDragging && dragOverSquare === item.square
+                    ? 'board-square-drag-over'
+                    : '',
+                  lastFrom === item.square ? 'board-square-last-from' : '',
+                  lastTo === item.square ? 'board-square-last-to' : '',
+                  isDisabled ? 'board-square-disabled' : '',
+                  pieceColor
+                    ? `board-square-has-piece board-square-has-piece-${pieceColor}`
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onClick={() => handleSquareClick(item.square)}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) {
+                    return;
+                  }
+                  event.preventDefault();
+                  if (isDisabled) {
+                    return;
+                  }
 
-                const piece = game.get(item.square as Square);
-                if (!piece || piece.color !== turnColor) {
+                  const piece = game.get(item.square as Square);
+                  if (!piece || piece.color !== turnColor) {
+                    pointerDownSquareRef.current = null;
+                    return;
+                  }
+
+                  pointerDownSquareRef.current = item.square;
+                }}
+                onPointerEnter={(event) => {
+                  if (isDisabled) {
+                    return;
+                  }
+
+                  const origin = pointerDownSquareRef.current;
+                  if (!origin) {
+                    return;
+                  }
+
+                  // Only treat it as a drag when the pointer is held down and we entered another square.
+                  if ((event.buttons & 1) !== 1) {
+                    return;
+                  }
+
+                  if (origin === item.square) {
+                    return;
+                  }
+
+                  if (!isDragging) {
+                    setSelectedSquare(origin);
+                    setIsDragging(true);
+                  }
+
+                  setDragOverSquare(item.square);
+                }}
+                onPointerUp={(event) => {
+                  if (event.button !== 0) {
+                    return;
+                  }
+
+                  const origin = pointerDownSquareRef.current;
                   pointerDownSquareRef.current = null;
-                  return;
-                }
 
-                pointerDownSquareRef.current = item.square;
-              }}
-              onPointerEnter={(event) => {
-                if (isDisabled) {
-                  return;
-                }
+                  if (!origin) {
+                    return;
+                  }
 
-                const origin = pointerDownSquareRef.current;
-                if (!origin) {
-                  return;
-                }
+                  if (!isDragging) {
+                    // Let the click handler do the regular selection/move logic.
+                    setDragOverSquare(null);
+                    return;
+                  }
 
-                // Only treat it as a drag when the pointer is held down and we entered another square.
-                if ((event.buttons & 1) !== 1) {
-                  return;
-                }
-
-                if (origin === item.square) {
-                  return;
-                }
-
-                if (!isDragging) {
-                  setSelectedSquare(origin);
-                  setIsDragging(true);
-                }
-
-                setDragOverSquare(item.square);
-              }}
-              onPointerUp={(event) => {
-                if (event.button !== 0) {
-                  return;
-                }
-
-                const origin = pointerDownSquareRef.current;
-                pointerDownSquareRef.current = null;
-
-                if (!origin) {
-                  return;
-                }
-
-                if (!isDragging) {
-                  // Let the click handler do the regular selection/move logic.
+                  event.preventDefault();
+                  suppressNextClickRef.current = true;
+                  setIsDragging(false);
                   setDragOverSquare(null);
-                  return;
-                }
 
-                event.preventDefault();
-                suppressNextClickRef.current = true;
-                setIsDragging(false);
-                setDragOverSquare(null);
+                  if (origin === item.square) {
+                    return;
+                  }
 
-                if (origin === item.square) {
-                  return;
-                }
-
-                tryMakeMove(origin, item.square);
-              }}
-              disabled={isDisabled}
-              aria-label={`Case ${item.square}${
-                pieceLabel ? `, pièce ${pieceLabel}` : ''
-              }`}
-              aria-pressed={isSelected}
-            >
-              {moveTargetMeta ? (
-                <span
-                  className={[
-                    'board-move-dot',
-                    moveTargetMeta.isCapture ? 'board-move-dot-capture' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  aria-hidden="true"
-                />
-              ) : null}
-              {symbol ? (
-                <span
-                  className={[
-                    'board-piece',
-                    pieceColor ? `board-piece-${pieceColor}` : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  aria-hidden="true"
-                >
-                  {symbol}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
+                  tryMakeMove(origin, item.square);
+                }}
+                disabled={isDisabled}
+                aria-label={`Case ${item.square}${pieceLabel ? `, pièce ${pieceLabel}` : ''}`}
+                aria-pressed={isSelected}
+              >
+                {moveTargetMeta ? (
+                  <span
+                    className={[
+                      'board-move-dot',
+                      moveTargetMeta.isCapture ? 'board-move-dot-capture' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    aria-hidden="true"
+                  />
+                ) : null}
+                {symbol ? (
+                  <span
+                    className={[
+                      'board-piece',
+                      pieceColor ? `board-piece-${pieceColor}` : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    aria-hidden="true"
+                  >
+                    {symbol}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Chess } from 'chess.js';
+import { EvalBar } from '../../components/EvalBar/EvalBar';
 import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
 import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
@@ -15,9 +17,17 @@ import { useAuth } from '../auth/auth-context';
 
 type PuzzleTrainerProps = {
   limit?: number;
+  showPuzzlePanel?: boolean;
+  showContextPanel?: boolean;
+  showEvalBar?: boolean;
 };
 
-export function PuzzleTrainer({ limit = 10 }: PuzzleTrainerProps) {
+export function PuzzleTrainer({
+  limit = 10,
+  showPuzzlePanel = true,
+  showContextPanel = true,
+  showEvalBar = true,
+}: PuzzleTrainerProps) {
   const { session } = useAuth();
   const [isLoading, setIsLoading] = useState(Boolean(session?.access_token));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -33,8 +43,12 @@ export function PuzzleTrainer({ limit = 10 }: PuzzleTrainerProps) {
   const [isPersistingSession, setIsPersistingSession] = useState(false);
   const [isSessionPersisted, setIsSessionPersisted] = useState(false);
   const attemptFeedbackRef = useRef<HTMLDivElement | null>(null);
+  const positionGameRef = useRef<Chess | null>(null);
+  const [liveEvalPawns, setLiveEvalPawns] = useState(0);
 
   const currentPuzzle = sessionPuzzles[currentPuzzleIndex] ?? null;
+  const currentPuzzleId = currentPuzzle?.puzzle_id ?? null;
+  const currentPuzzleFen = currentPuzzle?.fen ?? null;
   const isSessionComplete =
     sessionPuzzles.length > 0 && currentPuzzleIndex >= sessionPuzzles.length;
   const totalPuzzles = sessionPuzzles.length;
@@ -95,19 +109,40 @@ export function PuzzleTrainer({ limit = 10 }: PuzzleTrainerProps) {
   }, [limit, session?.access_token]);
 
   async function handleMovePlayed(uciMove: string) {
-    if (
-      !session?.access_token ||
-      !currentPuzzle ||
-      isSubmittingAttempt ||
-      attemptResult
-    ) {
+    if (!session?.access_token || !currentPuzzle || isSubmittingAttempt) {
       return;
     }
 
     setLastMoveUci(uciMove);
     setErrorMessage(null);
-    setIsSubmittingAttempt(true);
 
+    // Keep a local mirror of the played move so the eval bar can update immediately.
+    try {
+      const from = uciMove.slice(0, 2);
+      const to = uciMove.slice(2, 4);
+      const promotion = uciMove.length > 4 ? uciMove.slice(4, 5) : 'q';
+
+      if (from.length === 2 && to.length === 2) {
+        const next = new Chess(
+          positionGameRef.current?.fen() ?? currentPuzzle.fen,
+        );
+        const move = next.move({ from, to, promotion });
+        if (move) {
+          positionGameRef.current = next;
+          setLiveEvalPawns(estimateEvalPawns(next));
+        }
+      }
+    } catch {
+      // Ignore: eval is best-effort, server remains source of truth for puzzle validation.
+    }
+
+    // After the first server-validated attempt, allow free play locally
+    // (eval bar keeps moving) but don't submit additional attempts.
+    if (attemptResult) {
+      return;
+    }
+
+    setIsSubmittingAttempt(true);
     try {
       const result = await evaluatePuzzleAttempt({
         accessToken: session.access_token,
@@ -167,6 +202,126 @@ export function PuzzleTrainer({ limit = 10 }: PuzzleTrainerProps) {
     () => Boolean(attemptResult?.is_correct),
     [attemptResult],
   );
+
+  function estimateEvalPawns(game: Chess) {
+    // Super simple eval: material + small positional nudges (centipawns).
+    const baseValues: Record<string, number> = {
+      p: 100,
+      n: 320,
+      b: 330,
+      r: 500,
+      q: 900,
+      k: 0,
+    };
+
+    const knightPst = [
+      [-50, -40, -30, -30, -30, -30, -40, -50],
+      [-40, -20, 0, 0, 0, 0, -20, -40],
+      [-30, 0, 15, 20, 20, 15, 0, -30],
+      [-30, 5, 20, 25, 25, 20, 5, -30],
+      [-30, 0, 20, 25, 25, 20, 0, -30],
+      [-30, 5, 15, 20, 20, 15, 5, -30],
+      [-40, -20, 0, 5, 5, 0, -20, -40],
+      [-50, -40, -30, -30, -30, -30, -40, -50],
+    ];
+
+    const bishopPst = [
+      [-20, -10, -10, -10, -10, -10, -10, -20],
+      [-10, 0, 0, 0, 0, 0, 0, -10],
+      [-10, 0, 10, 10, 10, 10, 0, -10],
+      [-10, 5, 10, 15, 15, 10, 5, -10],
+      [-10, 0, 10, 15, 15, 10, 0, -10],
+      [-10, 5, 10, 10, 10, 10, 5, -10],
+      [-10, 0, 0, 0, 0, 0, 0, -10],
+      [-20, -10, -10, -10, -10, -10, -10, -20],
+    ];
+
+    const pawnPst = [
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [5, 10, 10, -15, -15, 10, 10, 5],
+      [5, -5, -10, 0, 0, -10, -5, 5],
+      [0, 0, 0, 20, 20, 0, 0, 0],
+      [5, 5, 10, 25, 25, 10, 5, 5],
+      [10, 10, 20, 30, 30, 20, 10, 10],
+      [50, 50, 50, 50, 50, 50, 50, 50],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+    ];
+
+    const rookPst = [
+      [0, 0, 5, 10, 10, 5, 0, 0],
+      [-5, 0, 0, 0, 0, 0, 0, -5],
+      [-5, 0, 0, 0, 0, 0, 0, -5],
+      [-5, 0, 0, 0, 0, 0, 0, -5],
+      [-5, 0, 0, 0, 0, 0, 0, -5],
+      [-5, 0, 0, 0, 0, 0, 0, -5],
+      [5, 10, 10, 10, 10, 10, 10, 5],
+      [0, 0, 0, 0, 0, 0, 0, 0],
+    ];
+
+    const queenPst = [
+      [-20, -10, -10, -5, -5, -10, -10, -20],
+      [-10, 0, 0, 0, 0, 0, 0, -10],
+      [-10, 0, 5, 5, 5, 5, 0, -10],
+      [-5, 0, 5, 5, 5, 5, 0, -5],
+      [0, 0, 5, 5, 5, 5, 0, -5],
+      [-10, 5, 5, 5, 5, 5, 0, -10],
+      [-10, 0, 5, 0, 0, 0, 0, -10],
+      [-20, -10, -10, -5, -5, -10, -10, -20],
+    ];
+
+    const pstByType: Record<string, number[][]> = {
+      p: pawnPst,
+      n: knightPst,
+      b: bishopPst,
+      r: rookPst,
+      q: queenPst,
+    };
+
+    if (game.isCheckmate()) {
+      // Side to move is checkmated.
+      return game.turn() === 'w' ? -100 : 100;
+    }
+
+    let scoreCp = 0;
+    const board = game.board(); // rank 8 -> 1
+
+    for (let rank = 0; rank < board.length; rank += 1) {
+      for (let file = 0; file < board[rank].length; file += 1) {
+        const piece = board[rank][file];
+        if (!piece) {
+          continue;
+        }
+
+        const sign = piece.color === 'w' ? 1 : -1;
+        scoreCp += sign * (baseValues[piece.type] ?? 0);
+
+        const pst = pstByType[piece.type];
+        if (pst) {
+          const pstRank = piece.color === 'w' ? rank : 7 - rank;
+          scoreCp += sign * pst[pstRank][file];
+        }
+      }
+    }
+
+    // Small check bonus/penalty (side to move is in check).
+    if (game.inCheck()) {
+      scoreCp += game.turn() === 'w' ? -40 : 40;
+    }
+
+    return Math.max(-12, Math.min(12, scoreCp / 100));
+  }
+
+  useEffect(() => {
+    if (!currentPuzzleFen) {
+      positionGameRef.current = null;
+      setLiveEvalPawns(0);
+      return;
+    }
+
+    const game = new Chess(currentPuzzleFen);
+    positionGameRef.current = game;
+    setLiveEvalPawns(estimateEvalPawns(game));
+  }, [boardResetVersion, currentPuzzleFen, currentPuzzleId]);
 
   useEffect(() => {
     if (!attemptResult) {
@@ -293,15 +448,24 @@ export function PuzzleTrainer({ limit = 10 }: PuzzleTrainerProps) {
 
       {currentPuzzle ? (
         <div className="grid puzzle-grid">
-          <div className="puzzle-board-column">
+          <div
+            className={[
+              'puzzle-board-column',
+              !showPuzzlePanel ? 'puzzle-board-column-compact' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
             <Board
               key={`${currentPuzzle.puzzle_id}-${boardResetVersion}`}
               initialFen={currentPuzzle.fen}
               title="Entraînement"
+              lastMoveUci={lastMoveUci}
               onMovePlayed={(uciMove) => {
                 void handleMovePlayed(uciMove);
               }}
-              isDisabled={isSubmittingAttempt || Boolean(attemptResult)}
+              isDisabled={isSubmittingAttempt}
+              leftAccessory={showEvalBar ? <EvalBar evalPawns={liveEvalPawns} /> : null}
             />
             {attemptResult ? (
               <ExplanationPanel
@@ -314,88 +478,88 @@ export function PuzzleTrainer({ limit = 10 }: PuzzleTrainerProps) {
             ) : null}
           </div>
 
-          <Puzzle
-            objective={currentPuzzle.objective}
-            source={currentPuzzle.source}
-            context={currentPuzzle.context}
-          />
+          {showPuzzlePanel ? (
+            <Puzzle
+              objective={currentPuzzle.objective}
+              source={currentPuzzle.source}
+              context={currentPuzzle.context}
+            />
+          ) : null}
 
-          <section className="panel" aria-live="polite">
-            <h2>Contexte du coup</h2>
-            <p>
-              Pseudo Chess.com:{' '}
-              <strong>{currentPuzzle.context.chess_com_username}</strong>
-            </p>
-            <p>
-              Période: <strong>{currentPuzzle.context.period}</strong> • Format:{' '}
-              <strong>{currentPuzzle.context.time_class ?? 'unknown'}</strong>
-            </p>
-            <p>
-              Position critique au demi-coup{' '}
-              <strong>{currentPuzzle.context.ply_index}</strong>.
-            </p>
-            {lastMoveUci ? (
+          {showContextPanel ? (
+            <section className="panel" aria-live="polite">
+              <h2>Contexte du coup</h2>
               <p>
-                Dernier coup joué sur le board: <strong>{lastMoveUci}</strong>
+                Pseudo Chess.com:{' '}
+                <strong>{currentPuzzle.context.chess_com_username}</strong>
               </p>
-            ) : (
-              <p>Joue un coup sur le board pour démarrer.</p>
-            )}
-            {isSubmittingAttempt ? (
-              <p role="status" aria-live="polite">
-                Évaluation du coup en cours...
+              <p>
+                Période: <strong>{currentPuzzle.context.period}</strong> • Format:{' '}
+                <strong>{currentPuzzle.context.time_class ?? 'unknown'}</strong>
               </p>
-            ) : null}
-            {attemptResult ? (
-              <div
-                ref={attemptFeedbackRef}
-                tabIndex={-1}
-                role="status"
-                className={[
-                  'attempt-result',
-                  attemptResult.is_correct
-                    ? 'attempt-result-correct'
-                    : 'attempt-result-incorrect',
-                ].join(' ')}
-              >
-                <p>
-                  <strong>{attemptResult.feedback_title}</strong>
+              <p>
+                Position critique au demi-coup{' '}
+                <strong>{currentPuzzle.context.ply_index}</strong>.
+              </p>
+              <p>
+                Dernier coup joué sur le board:{' '}
+                <strong>{lastMoveUci ?? '—'}</strong>
+              </p>
+              {isSubmittingAttempt ? (
+                <p role="status" aria-live="polite">
+                  Évaluation du coup en cours...
                 </p>
-                <p>{attemptResult.feedback_message}</p>
-                <p>
-                  Coup proposé: <strong>{attemptResult.attempted_move_uci}</strong> •
-                  meilleur coup: <strong>{attemptResult.best_move_uci}</strong>
-                </p>
-                {attemptResult.retry_available ? (
-                  <button className="auth-submit" type="button" onClick={handleRetry}>
-                    Réessayer cette position
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
+              ) : null}
+              {attemptResult ? (
+                <div
+                  ref={attemptFeedbackRef}
+                  tabIndex={-1}
+                  role="status"
+                  className={[
+                    'attempt-result',
+                    attemptResult.is_correct
+                      ? 'attempt-result-correct'
+                      : 'attempt-result-incorrect',
+                  ].join(' ')}
+                >
+                  <p>
+                    <strong>{attemptResult.feedback_title}</strong>
+                  </p>
+                  <p>{attemptResult.feedback_message}</p>
+                  <p>
+                    Coup proposé: <strong>{attemptResult.attempted_move_uci}</strong> •
+                    meilleur coup: <strong>{attemptResult.best_move_uci}</strong>
+                  </p>
+                  {attemptResult.retry_available ? (
+                    <button className="auth-submit" type="button" onClick={handleRetry}>
+                      Réessayer cette position
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
 
-            <div className="puzzle-actions">
-              <button
-                className="auth-submit import-submit-secondary"
-                type="button"
-                onClick={handleSkipPuzzle}
-                disabled={isSubmittingAttempt}
-              >
-                Passer ce puzzle
-              </button>
-              <button
-                className="auth-submit"
-                type="button"
-                onClick={advanceToNextPuzzle}
-                disabled={!canContinueAfterSolve}
-              >
-                Continuer au puzzle suivant
-              </button>
-            </div>
-          </section>
+              <div className="puzzle-actions">
+                <button
+                  className="auth-submit import-submit-secondary"
+                  type="button"
+                  onClick={handleSkipPuzzle}
+                  disabled={isSubmittingAttempt}
+                >
+                  Passer ce puzzle
+                </button>
+                <button
+                  className="auth-submit"
+                  type="button"
+                  onClick={advanceToNextPuzzle}
+                  disabled={!canContinueAfterSolve}
+                >
+                  Continuer au puzzle suivant
+                </button>
+              </div>
+            </section>
+          ) : null}
         </div>
       ) : null}
     </>
   );
 }
-

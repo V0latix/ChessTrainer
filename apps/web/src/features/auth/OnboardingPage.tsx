@@ -464,7 +464,7 @@ export function OnboardingPage({ onLoggedOut }: OnboardingPageProps) {
           <p className="auth-message auth-message-error">{logoutError}</p>
         ) : null}
 
-        <PuzzleTrainer />
+        <PuzzleTrainer showPuzzlePanel={false} />
 
       <section ref={importZoneRef} id="import" className="import-zone">
         <h2>Importer depuis Chess.com</h2>

@@ -51,9 +51,12 @@ Defined in `apps/web/src/app/router.tsx`.
 ### MVP Custom Components
 
 - Board: `apps/web/src/components/Board/Board.tsx`
+- App layout (sidebar): `apps/web/src/components/AppLayout/AppLayout.tsx`
 - Puzzle card: `apps/web/src/components/Puzzle/Puzzle.tsx`
 - Explanation panel: `apps/web/src/components/ExplanationPanel/ExplanationPanel.tsx`
 - Progress summary: `apps/web/src/components/ProgressSummary/ProgressSummary.tsx`
+- Eval bar: `apps/web/src/components/EvalBar/EvalBar.tsx`
+- Puzzle trainer (session UI): `apps/web/src/features/puzzles/PuzzleTrainer.tsx`
 
 ### Env Vars (Vercel)
 
@@ -63,6 +66,9 @@ Validated in `apps/web/src/config/env.ts`.
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_ENVIRONMENT`, `VITE_SENTRY_RELEASE`
+
+Local note (monorepo): `apps/web/vite.config.ts` points `envDir` to the repo root so a root `.env`
+is picked up by Vite (only `VITE_*` variables are exposed client-side).
 
 ## API (`apps/api`)
 
@@ -228,11 +234,10 @@ Notes learned during setup:
 2. Install:
    - `npm install`
 3. Run:
-   - API: `npm run start:dev -w @chesstrainer/api`
+   - API: `npm run start:dev -w @chesstrainer/api` (run `npm -w apps/api run prisma:generate` if Prisma types are missing)
    - Web: `npm run dev -w @chesstrainer/web`
-   - Worker: `npm run dev -w @chesstrainer/worker`
+   - Worker: `npm run dev -w @chesstrainer/worker` (requires `prisma generate` too)
 
 Smoke auth test:
 
 - `scripts/smoke-auth.sh` (expects API running + Supabase configured)
-
