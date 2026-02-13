@@ -27,7 +27,7 @@
 }
 
 .app-shell {
-  max-width: 1080px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 40px 24px 64px;
   color: var(--text);
@@ -35,7 +35,7 @@
 
 .app-layout {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
   max-width: 1440px;
   margin: 0 auto;
   min-height: 100vh;
@@ -59,7 +59,7 @@
 }
 
 .app-sidebar-inner {
-  padding: 18px 14px;
+  padding: 16px 12px;
 }
 
 .app-nav-root {
@@ -251,7 +251,7 @@
   grid-template-columns: repeat(8, minmax(0, 1fr));
   width: 100%;
   min-width: 352px;
-  max-width: 540px;
+  max-width: 640px;
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
@@ -292,7 +292,7 @@
 }
 
 .board-piece {
-  font-size: 1.8rem;
+  font-size: 2.35rem;
   line-height: 1;
   font-family:
     'Apple Symbols',
@@ -300,6 +300,12 @@
     'Noto Sans Symbols 2',
     'DejaVu Sans',
     sans-serif;
+}
+
+@media (max-width: 520px) {
+  .board-piece {
+    font-size: 2.15rem;
+  }
 }
 
 .board-piece-w {
@@ -382,7 +388,9 @@
 .eval-bar {
   position: relative;
   width: 100%;
-  min-height: 360px;
+  /* Stretch to match the board height when used as a board accessory. */
+  height: 100%;
+  min-height: 0;
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
@@ -392,7 +400,8 @@
 .eval-bar-track {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, #f3f6ff 0%, #cfd7ea 48%, #0d1222 52%, #05070f 100%);
+  /* Hard stop at the center so it doesn't look "blurry". */
+  background: linear-gradient(180deg, #f3f6ff 0%, #cfd7ea 50%, #0d1222 50%, var(--bg) 100%);
 }
 
 .eval-bar-marker {
@@ -428,7 +437,7 @@
 }
 
 .puzzle-grid {
-  grid-template-columns: minmax(420px, 1.45fr) minmax(280px, 0.55fr);
+  grid-template-columns: minmax(520px, 1.8fr) minmax(240px, 0.4fr);
   align-items: start;
   grid-auto-rows: min-content;
 }
