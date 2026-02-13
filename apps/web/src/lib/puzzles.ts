@@ -10,6 +10,7 @@ export type NextPuzzleResponse = {
     game_id: string;
     game_url: string;
     chess_com_username: string;
+    opponent_username?: string | null;
     period: string;
     time_class: string | null;
     phase: string;
@@ -19,6 +20,7 @@ export type NextPuzzleResponse = {
     best_move_uci: string;
     eval_drop_cp: number;
     ply_index: number;
+    game_played_at?: string | null;
     created_at: string;
   };
 };

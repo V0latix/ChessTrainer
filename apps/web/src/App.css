@@ -236,6 +236,11 @@
   color: #c5cede;
 }
 
+.board-subtitle {
+  margin: 8px 0 10px;
+  color: var(--muted);
+}
+
 .board-help {
   margin-bottom: 10px;
   color: #c5cede;

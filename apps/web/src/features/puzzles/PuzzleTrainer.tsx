@@ -5,7 +5,6 @@ import { EvalBar } from '../../components/EvalBar/EvalBar';
 import { Board } from '../../components/Board/Board';
 import { ExplanationPanel } from '../../components/ExplanationPanel/ExplanationPanel';
 import { ProgressSummary } from '../../components/ProgressSummary/ProgressSummary';
-import { Puzzle } from '../../components/Puzzle/Puzzle';
 import { recordPuzzleSession } from '../../lib/progress';
 import {
   evaluatePuzzleAttempt,
@@ -56,6 +55,24 @@ export function PuzzleTrainer({
   const currentPositionLabel = isSessionComplete
     ? `${totalPuzzles}/${totalPuzzles}`
     : `${Math.min(currentPuzzleIndex + 1, totalPuzzles)}/${totalPuzzles}`;
+
+  const showInfoPanel = showPuzzlePanel || showContextPanel;
+
+  function formatDateForInfo(value: string | null | undefined) {
+    if (!value) {
+      return '—';
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString('fr-FR', {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  }
 
   useEffect(() => {
     if (!session?.access_token) {
@@ -451,7 +468,7 @@ export function PuzzleTrainer({
           <div
             className={[
               'puzzle-board-column',
-              !showPuzzlePanel ? 'puzzle-board-column-compact' : '',
+              !showInfoPanel ? 'puzzle-board-column-compact' : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -460,6 +477,7 @@ export function PuzzleTrainer({
               key={`${currentPuzzle.puzzle_id}-${boardResetVersion}`}
               initialFen={currentPuzzle.fen}
               title="Entraînement"
+              subtitle={currentPuzzle.objective}
               lastMoveUci={lastMoveUci}
               onMovePlayed={(uciMove) => {
                 void handleMovePlayed(uciMove);
@@ -476,86 +494,86 @@ export function PuzzleTrainer({
                 bestMoveExplanation={attemptResult.best_move_explanation}
               />
             ) : null}
+
+            {isSubmittingAttempt ? (
+              <p role="status" aria-live="polite" className="board-meta">
+                Évaluation du coup en cours...
+              </p>
+            ) : null}
+
+            {attemptResult ? (
+              <div
+                ref={attemptFeedbackRef}
+                tabIndex={-1}
+                role="status"
+                className={[
+                  'attempt-result',
+                  attemptResult.is_correct
+                    ? 'attempt-result-correct'
+                    : 'attempt-result-incorrect',
+                ].join(' ')}
+              >
+                <p>
+                  <strong>{attemptResult.feedback_title}</strong>
+                </p>
+                <p>{attemptResult.feedback_message}</p>
+                <p>
+                  Coup proposé: <strong>{attemptResult.attempted_move_uci}</strong> •
+                  meilleur coup: <strong>{attemptResult.best_move_uci}</strong>
+                </p>
+                {attemptResult.retry_available ? (
+                  <button className="auth-submit" type="button" onClick={handleRetry}>
+                    Réessayer cette position
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="puzzle-actions">
+              <button
+                className="auth-submit import-submit-secondary"
+                type="button"
+                onClick={handleSkipPuzzle}
+                disabled={isSubmittingAttempt}
+              >
+                Passer ce puzzle
+              </button>
+              <button
+                className="auth-submit"
+                type="button"
+                onClick={advanceToNextPuzzle}
+                disabled={!canContinueAfterSolve}
+              >
+                Continuer au puzzle suivant
+              </button>
+            </div>
           </div>
 
-          {showPuzzlePanel ? (
-            <Puzzle
-              objective={currentPuzzle.objective}
-              source={currentPuzzle.source}
-              context={currentPuzzle.context}
-            />
-          ) : null}
-
-          {showContextPanel ? (
+          {showInfoPanel ? (
             <section className="panel" aria-live="polite">
-              <h2>Contexte du coup</h2>
-              <p>
-                Pseudo Chess.com:{' '}
-                <strong>{currentPuzzle.context.chess_com_username}</strong>
-              </p>
-              <p>
-                Période: <strong>{currentPuzzle.context.period}</strong> • Format:{' '}
-                <strong>{currentPuzzle.context.time_class ?? 'unknown'}</strong>
-              </p>
-              <p>
-                Position critique au demi-coup{' '}
-                <strong>{currentPuzzle.context.ply_index}</strong>.
-              </p>
-              <p>
-                Dernier coup joué sur le board:{' '}
-                <strong>{lastMoveUci ?? '—'}</strong>
-              </p>
-              {isSubmittingAttempt ? (
-                <p role="status" aria-live="polite">
-                  Évaluation du coup en cours...
-                </p>
-              ) : null}
-              {attemptResult ? (
-                <div
-                  ref={attemptFeedbackRef}
-                  tabIndex={-1}
-                  role="status"
-                  className={[
-                    'attempt-result',
-                    attemptResult.is_correct
-                      ? 'attempt-result-correct'
-                      : 'attempt-result-incorrect',
-                  ].join(' ')}
-                >
-                  <p>
-                    <strong>{attemptResult.feedback_title}</strong>
-                  </p>
-                  <p>{attemptResult.feedback_message}</p>
-                  <p>
-                    Coup proposé: <strong>{attemptResult.attempted_move_uci}</strong> •
-                    meilleur coup: <strong>{attemptResult.best_move_uci}</strong>
-                  </p>
-                  {attemptResult.retry_available ? (
-                    <button className="auth-submit" type="button" onClick={handleRetry}>
-                      Réessayer cette position
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <div className="puzzle-actions">
-                <button
-                  className="auth-submit import-submit-secondary"
-                  type="button"
-                  onClick={handleSkipPuzzle}
-                  disabled={isSubmittingAttempt}
-                >
-                  Passer ce puzzle
-                </button>
-                <button
-                  className="auth-submit"
-                  type="button"
-                  onClick={advanceToNextPuzzle}
-                  disabled={!canContinueAfterSolve}
-                >
-                  Continuer au puzzle suivant
-                </button>
-              </div>
+              <h2>Infos</h2>
+              <ul className="puzzle-context-list">
+                <li>Perte estimée: {currentPuzzle.context.eval_drop_cp} cp</li>
+                <li>
+                  Adversaire:{' '}
+                  <strong>
+                    {currentPuzzle.context.opponent_username ??
+                      currentPuzzle.context.chess_com_username ??
+                      '—'}
+                  </strong>
+                </li>
+                <li>
+                  Date:{' '}
+                  <strong>
+                    {formatDateForInfo(
+                      currentPuzzle.context.game_played_at ?? currentPuzzle.context.created_at,
+                    )}
+                  </strong>
+                </li>
+                <li>
+                  Cadence: <strong>{currentPuzzle.context.time_class ?? 'unknown'}</strong>
+                </li>
+              </ul>
             </section>
           ) : null}
         </div>

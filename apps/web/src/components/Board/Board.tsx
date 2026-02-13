@@ -4,6 +4,7 @@ import { Chess, type Square } from 'chess.js';
 type BoardProps = {
   initialFen?: string;
   title?: string;
+  subtitle?: React.ReactNode;
   onMovePlayed?: (uciMove: string) => void;
   isDisabled?: boolean;
   lastMoveUci?: string | null;
@@ -48,6 +49,7 @@ const PIECE_LABELS: Record<string, string> = {
 export function Board({
   initialFen,
   title,
+  subtitle,
   onMovePlayed,
   isDisabled = false,
   lastMoveUci,
@@ -194,6 +196,7 @@ export function Board({
   return (
     <section className="panel board-panel">
       <h2>{title ?? 'Board'}</h2>
+      {subtitle ? <p className="board-subtitle">{subtitle}</p> : null}
       <p className="board-meta">Trait: {sideToMove}</p>
       <p id={helpId} className="board-help">
         Clavier: sélectionne la case de départ puis la case d’arrivée avec
